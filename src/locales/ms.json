@@ -1,0 +1,59 @@
+{
+  "nav": {
+    "home": "Rumah",
+    "about": "Tentang",
+    "services": "Layanan",
+    "projects": "Projek",
+    "skills": "Kemahiran",
+    "contact": "Hubungi",
+    "admin": "Admin"
+  },
+  "hero": {
+    "title": "DMS Mehedi",
+    "subtitle": "Pembangun Bertenaga AI • Ahli Strategi Digital • Pencipta",
+    "description": "Membina masa depan web dengan Next.js, Firebase, dan integrasi AI. Mengkhususkan diri dalam pemasaran digital, pengembangan web, dan otomasi.",
+    "cta1": "Jelajahi Karya Saya",
+    "cta2": "Hubungi Saya"
+  },
+  "about": {
+    "title": "Tentang Saya",
+    "description1": "Saya adalah pembangun dan ahli strategi digital yang berpikiran futuristik dengan semangat untuk menciptakan pengalaman web terdepan. Dengan keahlian dalam Next.js, Firebase, dan integrasi AI, saya membangun solusi yang dapat diskalakan yang mendorong batas-batas apa yang mungkin di web.",
+    "description2": "Perjalanan saya mencakup pemasaran digital, pengembangan web, dan otomasi. Saya percaya pada kekuatan AI untuk mengubah bisnis dan menciptakan pengalaman digital yang bermakna.",
+    "description3": "Ketika saya tidak sedang coding, Anda akan menemukan saya menjelajahi teknologi baru, membuat konten, atau merancang transformasi digital besar berikutnya.",
+    "innovation": "Inovasi",
+    "innovationDesc": "Mendorong batas dengan teknologi terdepan dan solusi kreatif.",
+    "strategy": "Strategi",
+    "strategyDesc": "Pendekatan berbasis data untuk pemasaran digital dan pertumbuhan bisnis.",
+    "performance": "Kinerja",
+    "performanceDesc": "Membangun aplikasi web yang cepat, dapat diskalakan, dan responsif."
+  },
+  "services": {
+    "title": "Layanan Digital",
+    "digitalMarketing": "Pemasaran Digital",
+    "digitalMarketingDesc": "Optimasi SEO, pembuatan corong, dan strategi iklan berbayar.",
+    "webDevelopment": "Pengembangan Web",
+    "webDevelopmentDesc": "Aplikasi web modern dan dapat diskalakan yang dibangun dengan Next.js dan Firebase.",
+    "shopify": "Shopify Dropshipping",
+    "shopifyDesc": "Solusi e-commerce otomatis dengan otomasi dan integrasi canggih."
+  },
+  "projects": {
+    "title": "Projek Unggulan",
+    "viewProject": "Lihat Projek"
+  },
+  "skills": {
+    "title": "Kemahiran & Keahlian"
+  },
+  "contact": {
+    "title": "Hubungi Saya",
+    "description": "Punya projek dalam pikiran? Mari berkolaborasi dan ciptakan sesuatu yang luar biasa bersama-sama.",
+    "email": "Email",
+    "whatsapp": "WhatsApp",
+    "social": "Sosial",
+    "name": "Nama",
+    "emailLabel": "Email",
+    "message": "Pesan",
+    "send": "Kirim Pesan",
+    "sent": "Pesan Terkirim!"
+  }
+}
+
