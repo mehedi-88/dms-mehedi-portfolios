@@ -31,8 +31,12 @@ Keep responses under 150 words.`;
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: systemPrompt },
-        ...conversationHistory,
+        { role: 'system', content: systemPrompt as string },
+        ...conversationHistory.map((msg: any) => ({
+          role: msg.role as "user" | "assistant" | "system",
+          content: msg.content as string,
+          ...(msg.name ? { name: msg.name } : {})
+        }))
       ],
       max_tokens: 200,
       temperature: 0.7,
