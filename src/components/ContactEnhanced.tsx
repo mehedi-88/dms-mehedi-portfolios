@@ -147,7 +147,7 @@ export function ContactEnhanced() {
               <h3 className="heading-3 text-[#1254FF] mb-4">Connect with Me</h3>
               <div className="flex gap-6">
                 <motion.a
-                  href="https://www.linkedin.com/in/dmsmehedi"
+                  href="https://www.linkedin.com/in/dms-mehedi-digital-marketing-expert-bangladesh/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#8D8D8D] hover:text-[#00C4FF] transition-colors"
@@ -157,7 +157,7 @@ export function ContactEnhanced() {
                   <Linkedin className="w-8 h-8" />
                 </motion.a>
                 <motion.a
-                  href="https://github.com/dmsmehedi"
+                  href="https://github.com/mehedi-88"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#8D8D8D] hover:text-[#00C4FF] transition-colors"

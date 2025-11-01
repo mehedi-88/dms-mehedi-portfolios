@@ -102,10 +102,10 @@ export function Contact() {
                 <div className="flex items-center space-x-3">
                   <Mail className="w-6 h-6 text-[#00C4FF]" />
                   <a
-                    href="mailto:hello@dmsmehedi.com"
+                    href="mailto:dmsmehedis@gmail.com"
                     className="text-[#8D8D8D] hover:text-[#00C4FF] transition-colors"
                   >
-                    hello@dmsmehedi.com
+                    dmsmehedis@gmail.com
                   </a>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -129,7 +129,7 @@ export function Contact() {
               <h3 className="heading-3 text-[#1254FF] mb-4">Connect with Me</h3>
               <div className="flex gap-6">
                 <a
-                  href="https://www.linkedin.com/in/dmsmehedi"
+                  href="https://www.linkedin.com/in/dms-mehedi-digital-marketing-expert-bangladesh/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#8D8D8D] hover:text-[#00C4FF] transition-colors"
@@ -138,7 +138,7 @@ export function Contact() {
                   <Linkedin className="w-8 h-8" />
                 </a>
                 <a
-                  href="https://github.com/dmsmehedi"
+                  href="https://github.com/mehedi-88"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#8D8D8D] hover:text-[#00C4FF] transition-colors"

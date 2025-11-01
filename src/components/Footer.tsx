@@ -40,7 +40,7 @@ export function Footer() {
           >
             {/* Placeholder for Google Map - Replace with actual embed code */}
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3651.9022!2d90.391081!3d23.750921!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755b854378f1f7d%3A0x6a0a0b0a0b0a0b0a!2sDhaka%2C%20Bangladesh!5e0!3m2!1sen!2sus!4v1678886400000!5m2!1sen!2sus"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3664.0446892632667!2d90.7065781!3d23.314137300000002!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3754f9296745f905%3A0xd1eadd36936ba411!2sDMS%20Mehedi!5e0!3m2!1sen!2sbd!4v1761998733692!5m2!1sen!2sbd"
               width="100%"
               height="100%"
               style={{ border: 0 }}
@@ -114,12 +114,12 @@ export function Footer() {
           <div className="flex flex-col gap-4 text-center md:text-left">
             <h3 className="text-xl font-bold text-[#1254FF] mb-2">DMS Mehedi</h3>
             <p className="text-sm text-[#8D8D8D]">
-              &copy; {year} AI-Powered Developer. All rights reserved.
+              &copy; {year} AI-Powered Digital Marketer. All rights reserved.
             </p>
             <div className="flex justify-center md:justify-start gap-4 mt-2">
               {/* Social Icons - Reusing the ones from Contact.tsx for consistency */}
               <motion.a
-                href="https://www.linkedin.com/in/dmsmehedi"
+                href="https://www.linkedin.com/in/dms-mehedi-digital-marketing-expert-bangladesh/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#8D8D8D] hover:text-[#00C4FF] transition-colors"
@@ -132,7 +132,7 @@ export function Footer() {
                 </svg>
               </motion.a>
               <motion.a
-                href="https://github.com/dmsmehedi"
+                href="https://github.com/mehedi-88"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#8D8D8D] hover:text-[#00C4FF] transition-colors"
@@ -152,7 +152,7 @@ export function Footer() {
         {/* Futuristic Divider */}
         <div className="mt-8 pt-6 border-t border-[#00C4FF] border-opacity-20 text-center">
           <p className="text-xs text-[#8D8D8D] font-mono">
-            // Built with Next.js, Firebase, and OpenAI. Optimized for a 2040 web experience.
+            DMS MEHEDI © 2025. All rights reserved.
           </p>
         </div>
       </div>
