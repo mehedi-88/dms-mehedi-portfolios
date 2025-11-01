@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # DMS Mehedi - AI-Powered Portfolio Platform
 
 A futuristic, real-time, AI-integrated portfolio web application built with **Next.js 14**, **TypeScript**, **TailwindCSS**, **Firebase**, and **Gemini API**. Designed to feel like it belongs in the web of 2040.
@@ -334,3 +335,7 @@ Built with inspiration from the future of web design, powered by:
 **Built with ❤️ by DMS Mehedi - AI-Powered Developer & Digital Strategist**
 
 *This site is designed to belong to the AI internet of 2040. It's immersive, responsive, real-time, multilingual, and intelligent — built to last forever on free Firebase hosting.*
+=======
+# dms-mehedi-portfolios
+portfollio build in next.js14
+>>>>>>> f1b343ebc1fe2868aeb5e1d90949b13ad9074156
