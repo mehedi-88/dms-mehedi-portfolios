@@ -65,4 +65,3 @@ Keep responses under 150 words.`;
     );
   }
 }
-
