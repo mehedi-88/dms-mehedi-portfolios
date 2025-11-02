@@ -15,12 +15,25 @@ export async function POST(req: NextRequest) {
     }
 
     // Build conversation context
-    const conversationHistory = messages
-      .slice(-3) // Get last 3 messages for context
-      .map((msg: any) => ({
-        role: msg.sender === 'user' ? 'user' : 'assistant',
-        content: msg.message,
-      }));
+    const conversationHistory = messages.slice(-3).map((msg: any) => {
+      if (msg.role === "function") {
+        return {
+          role: "function" as const,
+          content: msg.message,
+          name: msg.name || "function"
+        };
+      }
+      const role: "user" | "assistant" | "system" =
+        msg.role === "user" || msg.role === "assistant" || msg.role === "system"
+          ? msg.role
+          : msg.sender === "user"
+          ? "user"
+          : "assistant";
+      return {
+        role,
+        content: msg.message
+      };
+    });
 
     // Add system prompt for the AI assistant
     const systemPrompt = `You are a helpful AI assistant for DMS Mehedi, a digital marketing strategist and web developer. 
@@ -32,11 +45,7 @@ Keep responses under 150 words.`;
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt as string },
-        ...conversationHistory.map((msg: any) => ({
-          role: msg.role as "user" | "assistant" | "system",
-          content: msg.content as string,
-          ...(msg.name ? { name: msg.name } : {})
-        }))
+        ...conversationHistory
       ],
       max_tokens: 200,
       temperature: 0.7,
