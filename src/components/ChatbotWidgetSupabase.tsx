@@ -33,6 +33,7 @@ export function ChatbotWidgetSupabase() {
   const lastMessageCountRef = useRef(0);
   // 1. Add aiThinking state for controlling the thinking animation (not in Supabase messages)
   const [aiThinking, setAiThinking] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
 
   const scrollToBottom = useCallback((force = false) => {
     if (!messagesEndRef.current) return;
@@ -516,137 +517,107 @@ export function ChatbotWidgetSupabase() {
     };
   }, []);
 
+  useEffect(() => {
+    if (showWelcome) {
+      const timeout = setTimeout(() => setShowWelcome(false), 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [showWelcome]);
+
   return (
     <>
+      {/* Floating welcome bubble above icon */}
+      <AnimatePresence>
+        {showWelcome && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.42, ease: 'easeInOut' }}
+            className="fixed z-[51] bottom-24 right-7 sm:right-8 px-5 py-3 rounded-2xl bg-gradient-to-r from-[#121e45] via-[#15e8e4]/60 to-[#1650e3] text-white font-semibold text-base shadow-2xl border-2 border-[#1efcff40] backdrop-blur-xl max-w-xs animate-pulse select-none"
+            style={{fontFamily:'Inter,Arial,sans-serif',pointerEvents:'none',letterSpacing:'-.01em'}}
+          >
+            Hi there! I can help you.
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Enhanced Floating Button with soft hover glow */}
       <motion.button
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
-        whileHover={{ scale: 1.08 }}
+        whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-xl sm:text-2xl transition-all group bg-transparent border-none outline-none focus:outline-none`}
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-20 h-20 rounded-full flex items-center justify-center text-2xl focus:outline-none select-none group bg-transparent border-none"
         aria-label="Open chat"
-        style={{ boxShadow: 'none', background: 'none' }}
+        tabIndex={0}
+        style={{ WebkitTapHighlightColor: 'transparent', background: 'none', boxShadow: 'none', willChange: 'filter' }}
       >
-        {/* Liquid SVG animation */}
-        <span className="absolute inset-0 pointer-events-none select-none z-0">
+        <span className="absolute inset-0 z-0 pointer-events-none">
           {adminOnline ? (
-            <svg width="100%" height="100%" viewBox="0 0 64 64">
-              {/* Outer plasma/ion rings */}
-              <motion.circle cx="32" cy="32" r="29" fill="#00fff0" opacity={0.08} filter="url(#plasmaGglow)"
-                animate={{ scale: [1, 1.07, 1.14, 1], opacity: [0.09,0.21,0.27,0.07] }}
-                transition={{ duration: 3.7, repeat: Infinity, repeatType: 'mirror', ease:'easeInOut' }}
-              />
-              <motion.circle cx="32" cy="32" r="22.5" fill="#adffe7" opacity={0.12} filter="url(#plasmaGglow)"
-                animate={{ scale: [1, .97, 1.04, 1], opacity: [0.12,.22,.16,0.07] }}
-                transition={{ duration: 2.7, repeat: Infinity, repeatType: 'mirror', ease:'linear' }}
-              />
-              {/* Animated energy-flow liquid orb shape */}
+            <svg width="100%" height="100%" viewBox="0 0 80 80" className="drop-shadow-lg">
+              <motion.circle cx="40" cy="40" r="36" fill="#C3FFD6" opacity={0.09}
+                animate={{ scale: [1, 1.13, 1], opacity: [0.12, 0.21, 0.09] }}
+                transition={{ duration: 4.6, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }} />
               <motion.path
-                d="M31.5,18Q45,25 43,32T32,48Q20,41 22,32T31.5,18Z"
-                fill="url(#plasmaLiquid)"
-                animate={{
-                  d: [
-                    'M31.5,18Q45,25 43,32T32,48Q20,41 22,32T31.5,18Z',
-                    'M32,20Q46,28 44,32T32,46Q18,39 20,32T32,20Z',
-                    'M31.5,18Q45,25 43,32T32,48Q20,41 22,32T31.5,18Z'],
-                  scale: [1,1.12,1],
-                }}
-                transition={{ duration: 6, repeat: Infinity, repeatType:'mirror',ease:'easeInOut' }}
-                style={{ filter: 'blur(1.3px)' }}
+                d="M32 54 Q40 67 48 54 M24 46 Q40 63 56 46"
+                stroke="url(#neuralGradient1)" strokeWidth="3" fill="none"
+                animate={{ strokeDashoffset: [20, 0, -20] }}
+                strokeDasharray="20 17"
+                transition={{ duration: 3.4, repeat: Infinity, ease: 'linear' }}
               />
-              {/* Rotating luminous ring for depth */}
               <motion.circle
-                cx="32" cy="32" r="13.9"
-                fill="none"
-                stroke="url(#plasmaInner)"
-                strokeWidth="3.3"
-                opacity={0.82}
-                animate={{ rotate: 360 }}
-                transform="rotate(0 32 32)"
-                style={{ filter: 'blur(1.2px)' }}
-                transition={{ duration: 16, repeat: Infinity, ease: 'linear' }}
-              />
+                cx="40" cy="40" r="20" fill="#81FFD1" opacity={0.18}
+                animate={{ scale: [1, .97, 1], opacity: [0.18, 0.28, 0.11] }}
+                transition={{ duration: 2.6, repeat: Infinity }} />
+              <radialGradient id="neuralSparkNucleus" cx="50%" cy="50%" r="61%">
+                <stop offset="0%" stopColor="#fff" stopOpacity=".96"/>
+                <stop offset="32%" stopColor="#31ffda" stopOpacity=".72"/>
+                <stop offset="100%" stopColor="#00e289" />
+              </radialGradient>
+              <circle cx="40" cy="40" r="14" fill="url(#neuralSparkNucleus)" filter="url(#blurCore)" />
               <defs>
-                <radialGradient id="plasmaLiquid" cx="50%" cy="50%" r="90%">
-                  <stop offset="0%" stopColor="#dff"/>
-                  <stop offset="60%" stopColor="#0ffff7" stopOpacity="0.88"/>
-                  <stop offset="88%" stopColor="#26e48d"/>
-                  <stop offset="100%" stopColor="#00ffa3" stopOpacity="1"/>
+                <radialGradient id="neuralGradient1" cx="50%" cy="50%" r="65%">
+                  <stop offset="0%" stopColor="#b8ffd8"/>
+                  <stop offset="100%" stopColor="#18fb66"/>
                 </radialGradient>
-                <radialGradient id="plasmaInner" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#e9fff9" stopOpacity="0.2"/>
-                  <stop offset="90%" stopColor="#5ff6bb" stopOpacity="0.41"/>
-                  <stop offset="100%" stopColor="#0aa689"/>
-                </radialGradient>
-                <filter id="plasmaGglow">
-                  <feGaussianBlur stdDeviation="6"/>
-                </filter>
+                <filter id="blurCore"><feGaussianBlur stdDeviation="3.2"/></filter>
               </defs>
             </svg>
           ) : (
-            <svg width="100%" height="100%" viewBox="0 0 64 64">
-              {/* Red plasma/ion ripples */}
-              <motion.circle cx="32" cy="32" r="29" fill="#ff8484" opacity=".09" filter="url(#plasmaRglow)"
-                animate={{scale: [1.01, 1.09, 1],opacity: [.10,.26,.06]}}
-                transition={{duration:4.2,repeat:Infinity,repeatType:'mirror',ease:'easeInOut'}}
-              />
-              <motion.circle cx="32" cy="32" r="22" fill="#ffe3f6" opacity=".14" filter="url(#plasmaRglow)"
-                animate={{scale:[1,1.07,1],opacity:[.11,.19,.09]}}
-                transition={{duration:3.1,repeat:Infinity,repeatType:'mirror',ease:'linear'}}
-              />
+            <svg width="100%" height="100%" viewBox="0 0 80 80" className="drop-shadow-lg">
+              <motion.circle cx="40" cy="40" r="36" fill="#FFD1D5" opacity={0.11}
+                animate={{ scale: [1.04, 1, 1.12], opacity: [.11,.23,.07] }}
+                transition={{ duration: 4.2, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }} />
               <motion.path
-                d="M32,20Q44,28 42,32T32,46Q20,40 22,32T32,20Z"
-                fill="url(#plasmaLiquidR)"
-                animate={{
-                  d:[
-                    'M32,20Q44,28 42,32T32,46Q20,40 22,32T32,20Z',
-                    'M32,22Q47,29 40,32T32,43Q16,35 24,32T32,22Z',
-                    'M32,20Q44,28 42,32T32,46Q20,40 22,32T32,20Z'],
-                  scale:[1,1.09,1],
-                }}
-                transition={{duration:7,repeat:Infinity,repeatType:'mirror',ease:'easeInOut'}}
-                style={{filter:'blur(1.1px)'}}
+                d="M32 54 Q40 67 48 54 M24 46 Q40 63 56 46"
+                stroke="url(#neuralGradientR)" strokeWidth="3" fill="none"
+                animate={{ strokeDashoffset: [21, -14, 21] }}
+                strokeDasharray="20 17"
+                transition={{ duration: 3.9, repeat: Infinity, ease: 'linear' }}
               />
-              {/* Rotating/warping inner red-cyan ring */}
               <motion.circle
-                cx="32" cy="32" r="13.7"
-                fill="none"
-                stroke="url(#plasmaInnerR)"
-                strokeWidth="3.3"
-                opacity={0.65}
-                animate={{rotate:360}}
-                transform="rotate(0 32 32)"
-                style={{filter:'blur(1.4px)'}}
-                transition={{duration:13,repeat:Infinity,ease:'linear'}}
-              />
+                cx="40" cy="40" r="20" fill="#DF5852" opacity={0.18}
+                animate={{ scale: [1, .99, 1.02], opacity: [0.18, 0.34, 0.13] }}
+                transition={{ duration: 2.6, repeat: Infinity }} />
+              <radialGradient id="neuralCoreR" cx="50%" cy="50%" r="61%">
+                <stop offset="0%" stopColor="#fff" stopOpacity=".91"/>
+                <stop offset="37%" stopColor="#ff6363" stopOpacity=".78"/>
+                <stop offset="100%" stopColor="#eb003b" />
+              </radialGradient>
+              <circle cx="40" cy="40" r="14" fill="url(#neuralCoreR)" filter="url(#blurCoreR)" />
               <defs>
-                <radialGradient id="plasmaLiquidR" cx="50%" cy="50%" r="90%">
-                  <stop offset="0%" stopColor="#fff9fa"/>
-                  <stop offset="62%" stopColor="#ff5a96" stopOpacity=".71"/>
-                  <stop offset="98%" stopColor="#FF2958"/>
-                  <stop offset="100%" stopColor="#fd1b59" stopOpacity="1"/>
+                <radialGradient id="neuralGradientR" cx="50%" cy="50%" r="65%">
+                  <stop offset="0%" stopColor="#ffeaea"/>
+                  <stop offset="100%" stopColor="#ff3a54"/>
                 </radialGradient>
-                <radialGradient id="plasmaInnerR" cx="50%" cy="50%" r="60%">
-                  <stop offset="0%" stopColor="#fff5fc" stopOpacity=".21"/>
-                  <stop offset="80%" stopColor="#fd7fc6" stopOpacity=".31"/>
-                  <stop offset="100%" stopColor="#b72151"/>
-                </radialGradient>
-                <filter id="plasmaRglow">
-                  <feGaussianBlur stdDeviation="7"/>
-                </filter>
+                <filter id="blurCoreR"><feGaussianBlur stdDeviation="3.2"/></filter>
               </defs>
             </svg>
           )}
         </span>
-        <span className="drop-shadow-lg z-10 relative">💬</span>
-        {/* Online/offline dot remains for badge-purposes*/}
-        {adminOnline ? (
-          <span className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-400 rounded-full border-2 border-white shadow-lg z-10" />
-        ) : (
-          <span className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-red-400 rounded-full border-2 border-white shadow-lg z-10" />
-        )}
+        {/* Icon overlay (DMS AI) */}
+        <span className="z-10 relative font-extrabold text-[1.35rem] sm:text-[1.65rem] text-[#1efcff] drop-shadow-[0_0_32px_#00e2db80] pointer-events-none leading-tight flex items-center justify-center w-full h-full" style={{fontFamily:'Orbitron,Roboto,Arial,sans-serif',letterSpacing:'-1px',textAlign:'center'}}>DMS&nbsp;<span className='text-[#ffffff]'>AI</span></span>
       </motion.button>
 
       {/* Enhanced Chat Window */}
@@ -698,26 +669,49 @@ export function ChatbotWidgetSupabase() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.length === 0 && (
                 <div className="text-center text-[#8D8D8D] py-8">
-                  <p>Start a conversation...</p>
+                  <p>Start a conversation…</p>
                 </div>
               )}
               {messages.map((message) => (
                 <motion.div
                   key={message.id}
-                  initial={{ opacity: 0, scale: 0.86 }}
+                  initial={{ opacity: 0, scale: 0.93 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ scale: 1.05, boxShadow: message.sender === 'user' ? '0 4px 18px #18e3ff88' : '0 4px 12px #009cfd88' }}
-                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                  className={`relative mb-2 px-4 py-3 rounded-2xl sm:rounded-3xl text-white max-w-xs break-words select-text shadow-[0_2px_20px_0_rgba(0,212,255,0.12)] backdrop-blur-xl border border-white/12 bg-gradient-to-br ${message.sender === 'user' ? 'from-[#232b5a]/80 via-[#0fffc4]/50 to-[#0b4cff]/60 ml-auto' : 'from-[#12477d]/80 via-[#32e2ff]/40 to-[#2867cc]/60 mr-auto'}`}
-                  style={{ filter: 'drop-shadow(0 0 12px #0fffc977)' }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 31 }}
+                  className={`relative flex mb-4 ${message.sender==='user'? 'justify-end':'justify-start'} items-end w-full`}
+                  style={{minHeight:'28px'}}
                 >
-                  <span className="font-medium text-xs opacity-75 absolute -top-4 left-2 select-none drop-shadow-lg">
+                  {/* Admin avatar icon on left for admin messages only */}
+                  {message.sender==='admin' && (
+                    <span className="mr-2 flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[#1254ff] to-[#0ed6a7] flex items-center justify-center shadow-lg border-2 border-white select-none" style={{fontFamily:'Orbitron',fontWeight:'bold',fontSize:'1.11rem',color:'#fff'}}>A</span>
+                  )}
+                  <div
+                    className={`relative px-4 pt-3 pb-4 rounded-3xl text-white break-words select-text shadow-lg border-2 ${message.sender==='user' ? 'from-[#1d2859]/70 via-[#05ffe0]/40 to-[#0b6e88]/80 bg-gradient-to-br ml-auto text-right border-[#00d1b3]/30' : 'from-[#192040]/90 via-[#32e2ff]/27 to-[#2851cc]/60 bg-gradient-to-bl mr-0 text-left border-[#4ea3ff]/28'} w-fit max-w-[81vw] sm:max-w-[62%]`}
+                    style={{filter:'drop-shadow(0 0 14px #00e2db21)', fontFamily:'Inter,Roboto,Arial,sans-serif',marginLeft:message.sender==='admin'?'0.2rem':0}}
+                >
+                    {/* Sender label above, spaced nicely */}
+                    <span className="block font-semibold text-xs opacity-75 mb-1 select-none tracking-wide" style={{fontFamily:'Orbitron,Arial,sans-serif'}}>
                     {message.sender === 'user' ? '' : 'Admin'}
                         </span>
-                  <div className="relative z-10"><span>{message.message}</span></div>
+                    {/* Actual message content */}
+                    <div className="relative z-10"><span className="text-[1.08rem] leading-snug whitespace-pre-line" style={{wordBreak:'break-word'}}>{message.message}</span></div>
+                    {/* Seen/sent status for user messages */}
                       {message.sender === 'user' && (
-                    <span className="absolute right-3 bottom-1.5 text-[10px] opacity-65 select-none">{message.status === 'seen' ? '✓✓ Seen' : '✓ Sent'}</span>
+                      <span className="block mt-2 text-[11px] font-semibold select-none items-center justify-end gap-1" style={{fontFamily:'Orbitron,Arial,sans-serif', color:message.status==='seen' ? '#47ff47' : '#fff', opacity: message.status==='seen' ? 0.92 : 0.6}}>
+                        {message.status === 'seen' ? (
+                          <>
+                            <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className="inline align-middle -mt-0.5" style={{verticalAlign: 'middle'}}>
+                              <path d="M2.5 6.5l3.5 3.0 5.5-7.0" stroke="#49ff8c" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M7.5 9.5l2.5 2 5.5-7.0" stroke="#49ff8c" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            <span className="ml-1 text-[#49ff8c] font-bold">Seen</span>
+                          </>
+                        ) : (
+                          <>✓ Sent</>
+                        )}
+                      </span>
                   )}
+                  </div>
                 </motion.div>
               ))}
               {/* Unified Admin Typing Indicator */}

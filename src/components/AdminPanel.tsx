@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { MessageSquare, User, Wifi, WifiOff, Send, Loader2, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -291,6 +291,22 @@ export function AdminPanel() {
   }, [selectedChat]);
 
   useEffect(() => {
+    if (!selectedChat) return;
+    const markUserMessagesAsSeen = async () => {
+      try {
+        await supabase.from('chat_messages')
+          .update({ status: 'seen' })
+          .eq('chat_id', selectedChat)
+          .eq('sender', 'user')
+          .eq('status', 'sent');
+      } catch (error) {
+        console.error('Error marking user messages as seen:', error);
+      }
+    };
+    markUserMessagesAsSeen();
+  }, [selectedChat]);
+
+  useEffect(() => {
     const fetchChats = async () => {
       try {
         const { data, error } = await supabase
@@ -427,10 +443,10 @@ export function AdminPanel() {
   }, [selectedChat]);
 
   // Handle Input Change
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
-  };
+  }, []);
 
   // Handle Send Message (actually send to database)
   const handleSendMessage = useCallback(async () => {
@@ -483,6 +499,8 @@ export function AdminPanel() {
     if (diffDays < 7) return `Last seen ${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
     return `Last seen on ${lastSeenDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}`;
   };
+
+  const filteredActiveChats = useMemo(() => activeChats, [activeChats]);
 
   // Cleanup all channels on unmount and set admin offline
   useEffect(() => {
@@ -575,6 +593,58 @@ export function AdminPanel() {
 
   const adminLocalTyping = inputValue.trim().length > 0;
 
+  const MemoizedMessageBubble = React.memo(function MemoizedMessageBubble({ message }: { message: Message }) {
+    return (
+      <motion.div
+        key={message.id}
+        initial={{ opacity: 0, y: 20, scale: 0.9 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+        className={`flex ${message.sender === 'admin' ? 'justify-end' : 'justify-start'}`}
+      >
+        <div className={`flex items-start gap-2 max-w-[70%] ${message.sender === 'admin' ? 'flex-row-reverse' : 'flex-row'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${message.sender === 'admin'
+            ? 'bg-gradient-to-br from-[#1254FF] to-[#00C4FF] text-white'
+            : 'bg-gray-600 text-white'}`}>
+            {message.sender === 'admin' ? 'A' : 'U'}
+          </div>
+          <div className={`px-4 py-3 rounded-2xl shadow-md ${message.sender === 'admin'
+            ? 'bg-gradient-to-br from-[#1254FF] to-[#00C4FF] text-white rounded-br-md'
+            : 'bg-gray-700 text-white border border-gray-600 rounded-bl-md'
+          }`}>
+            <p className="text-sm leading-relaxed">{message.message}</p>
+            <p className={`text-xs opacity-80 mt-2 flex items-center gap-2 ${message.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>  
+              <span>
+                {new Date(message.created_at).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </span>
+              <span className="flex items-center gap-1 select-none">
+                {message.status === 'seen' ? (
+                  <>
+                    <svg width="15" height="15" fill="none" viewBox="0 0 16 16">
+                      <path d="M3.5 8.25l3.5 3.25 5.5-7.25" stroke="#49ff8c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M6.5 10.25l2.5 2.25 5.5-7.25" stroke="#49ff8c" strokeWidth="1.44" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="text-[#49ff8c] font-bold">Seen</span>
+                  </>
+                ) : (
+                  <>
+                    <svg width="15" height="15" fill="none" viewBox="0 0 16 16">
+                      <path d="M3.5 8.25l3.5 3.25 5.5-7.25" stroke="#ccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="text-[#ddd]">Sent</span>
+                  </>
+                )}
+              </span>
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    );
+  });
+
   return (
     <div className="relative min-h-screen w-full bg-[radial-gradient(circle_at_20%_20%,#0A0F1C,transparent_35%),radial-gradient(circle_at_80%_0%,#001133,transparent_30%),linear-gradient(180deg,#0A0F1C,#001133)] text-white/90 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto flex flex-col gap-8">
@@ -652,7 +722,7 @@ export function AdminPanel() {
               <div className="p-6 rounded-2xl backdrop-blur-xl bg-[#0F172A]/70 border border-white/10 shadow-[0_0_30px_rgba(0,196,255,0.12)]">
                 <h2 className="text-lg font-semibold mb-4 text-white/90">Active Chats</h2>
                 <ul className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
-                  {activeChats.map((chat) => (
+                  {filteredActiveChats.map((chat) => (
                     <li
                       key={chat.id}
                       onClick={() => setSelectedChat(chat.id)}
@@ -671,7 +741,7 @@ export function AdminPanel() {
                       </div>
                     </li>
                   ))}
-                  {activeChats.length === 0 && (
+                  {filteredActiveChats.length === 0 && (
                     <li className="text-sm text-white/50 border border-white/10 rounded-xl px-4 py-6 text-center">No active chats</li>
                   )}
                 </ul>
@@ -718,44 +788,7 @@ export function AdminPanel() {
                     </div>
                   ) : (
                     messages.map((message) => (
-                      <motion.div
-                        key={message.id}
-                        initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
-                        className={`flex ${message.sender === 'admin' ? 'justify-end' : 'justify-start'
-                          }`}
-                      >
-                        <div className={`flex items-start gap-2 max-w-[70%] ${message.sender === 'admin' ? 'flex-row-reverse' : 'flex-row'
-                          }`}>
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${message.sender === 'admin'
-                            ? 'bg-gradient-to-br from-[#1254FF] to-[#00C4FF] text-white'
-                            : 'bg-gray-600 text-white'
-                            }`}>
-                            {message.sender === 'admin' ? 'A' : 'U'}
-                          </div>
-                          <div className={`px-4 py-3 rounded-2xl shadow-md ${message.sender === 'admin'
-                            ? 'bg-gradient-to-br from-[#1254FF] to-[#00C4FF] text-white rounded-br-md'
-                            : 'bg-gray-700 text-white border border-gray-600 rounded-bl-md'
-                            }`}>
-                            <p className="text-sm leading-relaxed">{message.message}</p>
-                            <p className={`text-xs opacity-70 mt-2 flex items-center gap-2 ${message.sender === 'admin' ? 'justify-end' : 'justify-start'
-                              }`}>
-                              <span>
-                                {new Date(message.created_at).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                              {message.sender === 'admin' && (
-                                <span className="text-white/80">
-                                  {message.status === 'seen' ? '✓✓' : '✓'}
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                      </motion.div>
+                      <MemoizedMessageBubble message={message} key={message.id} />
                     ))
                   )}
                   {userTyping && <TypingIndicator label="User is typing..." align="left" />}
