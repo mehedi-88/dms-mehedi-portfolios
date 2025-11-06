@@ -8,7 +8,7 @@ const skillCategories = [
   {
     category: 'Digital Marketing',
     skills: ['SEO', 'SEM', 'SMM', 'Content Marketing', 'Analytics', 'Funnels', 'LM'],
-  
+
   },
   {
     category: 'E-Commerce',
@@ -18,7 +18,7 @@ const skillCategories = [
     category: 'Video Editing',
     skills: ['Prmire Pro', 'After Effects', 'Devinci Resolve', 'Cuptut', 'Filmora'],
   },
-  
+
   {
     category: 'Frontend',
     skills: ['React', 'Next.js', 'TypeScript', 'TailwindCSS', 'Framer Motion'],
@@ -31,7 +31,7 @@ const skillCategories = [
     category: 'AI & Tools',
     skills: ['Gemini API', 'OpenAI', 'Claude', 'LangChain', 'Automation'],
   },
-  
+
 ];
 
 export function Skills() {
@@ -56,31 +56,31 @@ export function Skills() {
   };
 
   return (
-    <section className="py-20 px-4 md:px-8 max-w-6xl mx-auto">
+    <section className="py-12 sm:py-16 md:py-20 lg:py-24 px-4 sm:px-6 md:px-8 lg:px-12 max-w-7xl mx-auto">
       <motion.div
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
       >
-        <motion.h2 variants={itemVariants} className="heading-2 mb-12 text-center">
+        <motion.h2 variants={itemVariants} className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-8 md:mb-12 text-center">
           Skills & <span className="text-[#00C4FF]">Expertise</span>
         </motion.h2>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {skillCategories.map((category, index) => (
             <motion.div
               key={index}
               variants={itemVariants}
-              className="glass rounded-xl p-6 hover:border-[#00C4FF] transition-all duration-300"
+              className="glass rounded-xl p-4 sm:p-6 hover:border-[#00C4FF] transition-all duration-300"
             >
-              <h3 className="heading-3 text-[#1254FF] mb-4">{category.category}</h3>
-              <div className="flex flex-wrap gap-2">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-[#1254FF] mb-3 sm:mb-4">{category.category}</h3>
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                 {category.skills.map((skill, idx) => (
                   <motion.span
                     key={idx}
                     whileHover={{ scale: 1.1 }}
-                    className="px-3 py-2 rounded-lg bg-gradient-to-r from-[#1254FF] to-[#00C4FF] text-white text-sm font-semibold cursor-pointer transition-all"
+                    className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-gradient-to-r from-[#1254FF] to-[#00C4FF] text-white text-xs sm:text-sm font-semibold cursor-pointer transition-all"
                   >
                     {skill}
                   </motion.span>

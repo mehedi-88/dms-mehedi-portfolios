@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-import { MessageSquare, User, Wifi, WifiOff, Send, Loader2, Clock } from 'lucide-react';
+import { MessageSquare, User, Wifi, WifiOff, Send, Loader2, Clock, Trash2, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -86,7 +86,7 @@ interface Message {
 
 export function AdminPanel() {
   const [adminOnline, setAdminOnline] = useState(false);
-  const [userTyping, setUserTyping] = useState(false);
+  const [typingStates, setTypingStates] = useState<Record<string, boolean>>({});
   const [lastSeen, setLastSeen] = useState<string>('');
   const [inputValue, setInputValue] = useState('');
   const [activeChats, setActiveChats] = useState<any[]>([]);
@@ -96,8 +96,20 @@ export function AdminPanel() {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  // Add new state for AI thinking UI animation (local, not in messages array)
   const [aiThinking, setAiThinking] = useState(false);
+
+  // UI-only button handlers
+  const handleDeleteChat = (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation(); 
+    console.log("TODO: Delete chat", chatId);
+    alert(`UI ONLY: Deleting chat ${chatId}`);
+  };
+
+  const handleMarkChat = (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation();
+    console.log("TODO: Mark chat", chatId);
+    alert(`UI ONLY: Marking chat ${chatId}`);
+  };
 
   useEffect(() => {
     const channel = supabase
@@ -118,9 +130,7 @@ export function AdminPanel() {
         }
       )
       .subscribe();
-
     channelsRef.current.push(channel);
-
     const fetchInitialPresence = async () => {
       try {
         const { data, error } = await supabase
@@ -136,9 +146,7 @@ export function AdminPanel() {
         console.error('Fetch initial presence error:', err);
       }
     };
-
     fetchInitialPresence();
-
     return () => {
       if (channel) {
         supabase.removeChannel(channel);
@@ -146,22 +154,24 @@ export function AdminPanel() {
     };
   }, []);
 
+  // Global typing subscription (correctly implemented)
   useEffect(() => {
-    if (!selectedChat) return;
     const typingChannel = supabase
-      .channel(`typing_status_${selectedChat}`)
+      .channel('public:typing_status')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'typing_status',
-          filter: `chat_id=eq.${selectedChat}`,
         },
         (payload: any) => {
           if (!payload?.new) return;
           if (payload.new.user_id !== 'admin') {
-            setUserTyping(!!payload.new.is_typing);
+            setTypingStates((prev) => ({
+              ...prev,
+              [payload.new.chat_id]: !!payload.new.is_typing,
+            }));
           }
         }
       )
@@ -170,8 +180,9 @@ export function AdminPanel() {
     return () => {
       supabase.removeChannel(typingChannel);
     };
-  }, [selectedChat]);
+  }, []);
 
+  // Per-chat message subscription
   useEffect(() => {
     if (!selectedChat) return;
     const chatChannel = supabase
@@ -182,7 +193,6 @@ export function AdminPanel() {
         table: 'chat_messages',
         filter: `chat_id=eq.${selectedChat} AND sender=eq.user`,
       }, async (payload: any) => {
-        // Optimistically add the new message to the UI
         const newMessage: Message = {
           id: payload.new.id,
           chat_id: payload.new.chat_id,
@@ -195,12 +205,10 @@ export function AdminPanel() {
           if (prev.some(m => m.id === newMessage.id)) return prev;
           return [...prev, newMessage];
         });
-
-        // Update the status of the newly inserted message to 'seen'
         try {
           await supabase.from('chat_messages')
             .update({ status: 'seen' })
-            .eq('id', payload.new.id) // Update only the specific new message
+            .eq('id', payload.new.id)
             .eq('chat_id', selectedChat)
             .eq('sender', 'user')
             .eq('status', 'sent');
@@ -215,16 +223,17 @@ export function AdminPanel() {
     };
   }, [selectedChat]);
 
+  // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Fetch messages for selected chat
   useEffect(() => {
     if (!selectedChat) {
       setMessages([]);
       return;
     }
-
     const fetchMessages = async () => {
       try {
         const { data, error } = await supabase
@@ -232,7 +241,6 @@ export function AdminPanel() {
           .select('*')
           .eq('chat_id', selectedChat)
           .order('created_at', { ascending: true });
-
         if (!error && data) {
           setMessages(data);
         }
@@ -240,7 +248,6 @@ export function AdminPanel() {
         console.error('Error fetching messages:', err);
       }
     };
-
     const messagesChannel = supabase
       .channel(`admin_messages_${selectedChat}`)
       .on(
@@ -281,15 +288,14 @@ export function AdminPanel() {
         }
       )
       .subscribe();
-
     channelsRef.current.push(messagesChannel);
     fetchMessages();
-
     return () => {
       supabase.removeChannel(messagesChannel);
     };
   }, [selectedChat]);
 
+  // Mark messages as seen
   useEffect(() => {
     if (!selectedChat) return;
     const markUserMessagesAsSeen = async () => {
@@ -306,6 +312,7 @@ export function AdminPanel() {
     markUserMessagesAsSeen();
   }, [selectedChat]);
 
+  // Fetch active chats
   useEffect(() => {
     const fetchChats = async () => {
       try {
@@ -324,17 +331,15 @@ export function AdminPanel() {
         console.error('fetchChats error:', e);
       }
     };
-
     fetchChats();
     const interval = setInterval(fetchChats, 5000);
-
     return () => clearInterval(interval);
   }, [selectedChat]);
 
+  // Toggle presence
   const togglePresence = useCallback(async () => {
     try {
       const newStatus = !adminOnline;
-
       const { data: updateData, error: updateError } = await supabase
         .from('user_presence')
         .update({
@@ -343,8 +348,6 @@ export function AdminPanel() {
         })
         .eq('user_id', 'admin')
         .select();
-
-      // If no record was updated (record doesn't exist), insert new one
       if (!updateData || updateData.length === 0) {
         const { error: insertError } = await supabase
           .from('user_presence')
@@ -353,15 +356,12 @@ export function AdminPanel() {
             is_online: newStatus,
             last_seen: new Date().toISOString(),
           });
-
         if (insertError && insertError.code !== '23505') {
           console.error('Error inserting presence:', insertError);
         }
       } else if (updateError) {
         console.error('Error updating presence:', updateError);
       }
-
-      // Also set typing status to false when going offline
       if (!newStatus) {
         await supabase
           .from('typing_status')
@@ -373,11 +373,9 @@ export function AdminPanel() {
     }
   }, [adminOnline]);
 
-  // Handle Logout
+  // Handle logout
   const handleLogout = useCallback(async () => {
     try {
-      // Set admin offline before logging out
-      // First try to update existing record
       const { data: updateData, error: updateError } = await supabase
         .from('user_presence')
         .update({
@@ -386,8 +384,6 @@ export function AdminPanel() {
         })
         .eq('user_id', 'admin')
         .select();
-
-      // If no record was updated (record doesn't exist), insert new one
       if (!updateData || updateData.length === 0) {
         const { error: insertError } = await supabase
           .from('user_presence')
@@ -396,21 +392,16 @@ export function AdminPanel() {
             is_online: false,
             last_seen: new Date().toISOString(),
           });
-
         if (insertError && insertError.code !== '23505') {
           console.error('Error inserting presence on logout:', insertError);
         }
       } else if (updateError) {
         console.error('Error updating presence on logout:', updateError);
       }
-
-      // Clear typing status
       await supabase
         .from('typing_status')
         .update({ is_typing: false })
         .eq('user_id', 'admin');
-
-      // Clear session
       localStorage.removeItem('admin_session');
       setIsAuthenticated(false);
     } catch (err) {
@@ -418,15 +409,14 @@ export function AdminPanel() {
     }
   }, []);
 
-  // Debounced typing status update (2-second delay)
+  // Admin typing
   const debouncedTyping = useCallback((isTyping: boolean) => {
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-
     const updateTyping = async () => {
       const chatID = selectedChat ? selectedChat : undefined;
-      if (!chatID) return; // Don't allow 'broadcast' fallback
+      if (!chatID) return;
       try {
         await supabase.from('typing_status').upsert({
           chat_id: chatID,
@@ -442,13 +432,12 @@ export function AdminPanel() {
     typingTimeoutRef.current = setTimeout(updateTyping, isTyping ? 0 : 2000);
   }, [selectedChat]);
 
-  // Handle Input Change
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
   }, []);
 
-  // Handle Send Message (actually send to database)
+  // Admin send message
   const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim() || !selectedChat) return;
     try {
@@ -460,19 +449,10 @@ export function AdminPanel() {
         status: 'sent' as const,
         created_at: new Date().toISOString(),
       };
-
-
-      setMessages(prev => {
-
-        return [...prev, message];
-      });
-
+      setMessages(prev => [...prev, message]);
       const { error } = await supabase.from('chat_messages').insert(message);
-
-
       if (error) {
         console.error('Error sending admin message:', error);
-        // Remove the optimistically added message if insertion failed
         setMessages(prev => prev.filter(m => m.id !== message.id));
       } else {
         setInputValue('');
@@ -483,7 +463,6 @@ export function AdminPanel() {
     }
   }, [inputValue, selectedChat, debouncedTyping, messages]);
 
-  // Helper function to format last seen time with richer variants
   const formatLastSeen = (timestamp: string) => {
     if (!timestamp) return 'Never';
     const lastSeenDate = new Date(timestamp);
@@ -492,7 +471,6 @@ export function AdminPanel() {
     const diffMinutes = Math.floor(diffSeconds / 60);
     const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
-
     if (diffSeconds < 60) return 'Online now';
     if (diffMinutes < 60) return `Last seen ${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
     if (diffHours < 24) return `Last seen ${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
@@ -502,16 +480,14 @@ export function AdminPanel() {
 
   const filteredActiveChats = useMemo(() => activeChats, [activeChats]);
 
-  // Cleanup all channels on unmount and set admin offline
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       channelsRef.current.forEach(channel => {
         supabase.removeChannel(channel);
       });
-      // Set admin offline when component unmounts
       const setAdminOffline = async () => {
         try {
-          // First try to update existing record
           const { data: updateData, error: updateError } = await supabase
             .from('user_presence')
             .update({
@@ -520,8 +496,6 @@ export function AdminPanel() {
             })
             .eq('user_id', 'admin')
             .select();
-
-          // If no record was updated (record doesn't exist), insert new one
           if (!updateData || updateData.length === 0) {
             const { error: insertError } = await supabase
               .from('user_presence')
@@ -530,7 +504,6 @@ export function AdminPanel() {
                 is_online: false,
                 last_seen: new Date().toISOString(),
               });
-
             if (insertError && insertError.code !== '23505') {
               console.error('Error inserting presence on unmount:', insertError);
             }
@@ -545,15 +518,13 @@ export function AdminPanel() {
     };
   }, []);
 
+  // Auth check
   useEffect(() => {
-    // Check session on mount
     const sess = localStorage.getItem('admin_session');
     if (sess === 'true') {
       setIsAuthenticated(true);
-      // Auto-set admin online when authenticated
       const setAdminOnline = async () => {
         try {
-          // First try to update existing record
           const { data: updateData, error: updateError } = await supabase
             .from('user_presence')
             .update({
@@ -562,8 +533,6 @@ export function AdminPanel() {
             })
             .eq('user_id', 'admin')
             .select();
-
-          // If no record was updated (record doesn't exist), insert new one
           if (!updateData || updateData.length === 0) {
             const { error: insertError } = await supabase
               .from('user_presence')
@@ -572,7 +541,6 @@ export function AdminPanel() {
                 is_online: true,
                 last_seen: new Date().toISOString(),
               });
-
             if (insertError && insertError.code !== '23505') {
               console.error('Error inserting presence on login:', insertError);
             }
@@ -611,9 +579,9 @@ export function AdminPanel() {
           <div className={`px-4 py-3 rounded-2xl shadow-md ${message.sender === 'admin'
             ? 'bg-gradient-to-br from-[#1254FF] to-[#00C4FF] text-white rounded-br-md'
             : 'bg-gray-700 text-white border border-gray-600 rounded-bl-md'
-          }`}>
+            }`}>
             <p className="text-sm leading-relaxed">{message.message}</p>
-            <p className={`text-xs opacity-80 mt-2 flex items-center gap-2 ${message.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>  
+            <p className={`text-xs opacity-80 mt-2 flex items-center gap-2 ${message.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
               <span>
                 {new Date(message.created_at).toLocaleTimeString([], {
                   hour: '2-digit',
@@ -624,15 +592,15 @@ export function AdminPanel() {
                 {message.status === 'seen' ? (
                   <>
                     <svg width="15" height="15" fill="none" viewBox="0 0 16 16">
-                      <path d="M3.5 8.25l3.5 3.25 5.5-7.25" stroke="#49ff8c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M6.5 10.25l2.5 2.25 5.5-7.25" stroke="#49ff8c" strokeWidth="1.44" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M3.5 8.25l3.5 3.25 5.5-7.25" stroke="#49ff8c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M6.5 10.25l2.5 2.25 5.5-7.25" stroke="#49ff8c" strokeWidth="1.44" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     <span className="text-[#49ff8c] font-bold">Seen</span>
                   </>
                 ) : (
                   <>
                     <svg width="15" height="15" fill="none" viewBox="0 0 16 16">
-                      <path d="M3.5 8.25l3.5 3.25 5.5-7.25" stroke="#ccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M3.5 8.25l3.5 3.25 5.5-7.25" stroke="#ccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     <span className="text-[#ddd]">Sent</span>
                   </>
@@ -648,18 +616,15 @@ export function AdminPanel() {
   return (
     <div className="relative min-h-screen w-full bg-[radial-gradient(circle_at_20%_20%,#0A0F1C,transparent_35%),radial-gradient(circle_at_80%_0%,#001133,transparent_30%),linear-gradient(180deg,#0A0F1C,#001133)] text-white/90 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto flex flex-col gap-8">
-        {/* Floating support badge */}
         <span className="fixed top-4 left-4 bg-gradient-to-r from-[#1254FF] to-[#00C4FF] text-white px-5 py-2 rounded-full shadow-lg glass-blur-sm text-lg font-bold tracking-wide z-40 select-none animate-slide-right">
           Support Admin
         </span>
-        {/* Glass Card with Glow and Frosted Gradient */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, type: 'spring' }}
           className="backdrop-blur-2xl rounded-3xl overflow-hidden max-w-full mx-auto p-0 border border-white/10 shadow-[0_0_30px_rgba(0,196,255,0.12)]"
         >
-          {/* Gradient Glass Header + Glow */}
           <div className="bg-gradient-to-r from-[#1254FF] via-[#00C4FF] to-[#1254FF] p-6 md:p-8 text-white shadow-lg border-b border-[#00C4FF]/30 relative">
             <div className="flex flex-wrap gap-3 md:gap-8 items-center justify-between">
               <div className="flex items-center gap-4">
@@ -672,11 +637,9 @@ export function AdminPanel() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                {/* Online/Offline Badge */}
                 <span className={`px-5 py-2 rounded-2xl text-base font-semibold banana transition-all shadow-md border-2 backdrop-blur-md ${adminOnline ? 'bg-green-500/40 border-green-400 shadow-green-200/50 animate-pulse' : 'bg-gradient-to-r from-red-500/40 to-red-600/40 border-red-400/70 shadow-red-300/30 animate-blink-red'}`}>
                   {adminOnline ? '🟢 Online' : '🔴 Offline'}
                 </span>
-                {/* Logout Button */}
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -689,9 +652,7 @@ export function AdminPanel() {
             </div>
           </div>
           <div className="p-4 md:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-4 gap-6 items-start bg-transparent">
-            {/* Column 1: Active Chats (Full Width) */}
             <div className="lg:col-span-1 space-y-6">
-              {/* Presence Control Card - Compact */}
               <div className="p-4 rounded-xl backdrop-blur-xl bg-[#0F172A]/70 border border-white/10 shadow-[0_0_20px_rgba(0,196,255,0.08)]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -709,8 +670,8 @@ export function AdminPanel() {
                     whileTap={{ scale: 0.95 }}
                     onClick={togglePresence}
                     className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${adminOnline
-                      ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
-                      : 'bg-green-500/20 text-green-300 hover:bg-green-500/30'
+                        ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
+                        : 'bg-green-500/20 text-green-300 hover:bg-green-500/30'
                       }`}
                   >
                     Go {adminOnline ? 'Offline' : 'Online'}
@@ -718,7 +679,6 @@ export function AdminPanel() {
                 </div>
               </div>
 
-              {/* Active Chats */}
               <div className="p-6 rounded-2xl backdrop-blur-xl bg-[#0F172A]/70 border border-white/10 shadow-[0_0_30px_rgba(0,196,255,0.12)]">
                 <h2 className="text-lg font-semibold mb-4 text-white/90">Active Chats</h2>
                 <ul className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
@@ -726,8 +686,29 @@ export function AdminPanel() {
                     <li
                       key={chat.id}
                       onClick={() => setSelectedChat(chat.id)}
-                      className={`rounded-xl border px-4 py-3 cursor-pointer transition-all backdrop-blur ${selectedChat === chat.id ? 'border-[#00C4FF] bg-gradient-to-br from-[#1254FF]/10 to-[#00C4FF]/10' : 'border-white/10 bg-white/5 hover:border-[#00C4FF]/40'}`}
+                      className={`relative group rounded-xl border px-4 py-3 cursor-pointer transition-all backdrop-blur ${selectedChat === chat.id ? 'border-[#00C4FF] bg-gradient-to-br from-[#1254FF]/10 to-[#00C4FF]/10' : 'border-white/10 bg-white/5 hover:border-[#00C4FF]/40'}`}
                     >
+                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => handleMarkChat(e, chat.id)}
+                          className="p-1 rounded-md bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30"
+                          title="Mark Chat"
+                        >
+                          <Star className="w-3 h-3" />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => handleDeleteChat(e, chat.id)}
+                          className="p-1 rounded-md bg-red-500/20 text-red-300 hover:bg-red-500/30"
+                          title="Delete Chat"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </motion.button>
+                      </div>
+                      
                       <div className="w-full">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-white/90 text-sm truncate max-w-[120px]">
@@ -737,7 +718,18 @@ export function AdminPanel() {
                             {chat.last_seen ? formatLastSeen(chat.last_seen) : ''}
                           </span>
                         </div>
-                        <p className="text-xs truncate opacity-60">{chat.last_message?.slice(0, 40) || 'No message yet'}</p>
+                        
+                        {typingStates[chat.id] ? (
+                          <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="text-xs truncate text-[#00C4FF] font-medium"
+                          >
+                            Typing...
+                          </motion.p>
+                        ) : (
+                          <p className="text-xs truncate opacity-60">{chat.last_message?.slice(0, 40) || 'No message yet'}</p>
+                        )}
                       </div>
                     </li>
                   ))}
@@ -748,10 +740,8 @@ export function AdminPanel() {
               </div>
             </div>
 
-            {/* Column 2: Chat Interface */}
             <div className="space-y-6 min-w-[400px] lg:col-span-3">
               <div className="rounded-2xl backdrop-blur-xl bg-[#0F172A]/70 border border-white/10 shadow-[0_0_30px_rgba(0,196,255,0.12)] h-[700px] flex flex-col">
-                {/* Chat Header */}
                 <div className="p-4 border-b border-white/10 bg-gradient-to-r from-[#1254FF]/20 to-[#00C4FF]/20">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -768,7 +758,6 @@ export function AdminPanel() {
                   </div>
                 </div>
 
-                {/* Messages Area */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                   {!selectedChat ? (
                     <div className="flex items-center justify-center h-full text-center text-white/50">
@@ -791,12 +780,13 @@ export function AdminPanel() {
                       <MemoizedMessageBubble message={message} key={message.id} />
                     ))
                   )}
-                  {userTyping && <TypingIndicator label="User is typing..." align="left" />}
+                  
+                  {typingStates[selectedChat] && <TypingIndicator label="User is typing..." align="left" />}
+                  
                   {aiThinking && <TypingIndicator label="AI is thinking..." align="left" isAI />}
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Message Input Area */}
                 {selectedChat && (
                   <div className="p-4 border-t border-white/10 bg-gray-900/30">
                     <div className="flex flex-col items-center gap-3">
@@ -863,10 +853,7 @@ export function AdminPanel() {
                 )}
               </div>
             </div>
-
-
           </div>
-
         </motion.div>
         <style>{`
           .glassy-card { backdrop-filter: blur(14px) saturate(145%); background-blend-mode: overlay; }

@@ -6,8 +6,20 @@ import { motion } from 'framer-motion';
 const AnimatedCursor = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [cursorVariant, setCursorVariant] = useState('default');
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    // Detect if device is mobile/touch
+    const checkIfMobile = () => {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        ('ontouchstart' in window) ||
+        (window.innerWidth <= 768);
+      setIsMobile(isMobileDevice);
+    };
+
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+
     const mouseMove = (e: MouseEvent) => {
       setMousePosition({
         x: e.clientX,
@@ -15,12 +27,15 @@ const AnimatedCursor = () => {
       });
     };
 
-    window.addEventListener('mousemove', mouseMove);
+    if (!isMobile) {
+      window.addEventListener('mousemove', mouseMove);
+    }
 
     return () => {
+      window.removeEventListener('resize', checkIfMobile);
       window.removeEventListener('mousemove', mouseMove);
     };
-  }, []);
+  }, [isMobile]);
 
   const variants = {
     default: {
@@ -61,6 +76,11 @@ const AnimatedCursor = () => {
     };
   }, []);
 
+  // Don't render animated cursor on mobile devices
+  if (isMobile) {
+    return null;
+  }
+
   return (
     <>
       {/* Main Cursor Core */}
@@ -76,12 +96,12 @@ const AnimatedCursor = () => {
         }}
         style={{
           filter: 'blur(0px)',
-          boxShadow: cursorVariant === 'default' 
-            ? '0 0 20px rgba(18, 84, 255, 0.6), 0 0 40px rgba(0, 196, 255, 0.3)' 
+          boxShadow: cursorVariant === 'default'
+            ? '0 0 20px rgba(18, 84, 255, 0.6), 0 0 40px rgba(0, 196, 255, 0.3)'
             : '0 0 30px rgba(0, 196, 255, 0.8), 0 0 60px rgba(18, 84, 255, 0.4)',
         }}
       />
-      
+
       {/* Glow Trail Effect */}
       <motion.div
         className="fixed top-0 left-0 rounded-full pointer-events-none z-[9998]"
@@ -102,7 +122,7 @@ const AnimatedCursor = () => {
           filter: 'blur(8px)',
         }}
       />
-      
+
       {/* Outer Pulse Ring */}
       <motion.div
         className="fixed top-0 left-0 rounded-full pointer-events-none z-[9997] border-2 border-blue-500/30"
@@ -122,17 +142,11 @@ const AnimatedCursor = () => {
           filter: 'blur(4px)',
         }}
       />
-      
+
       {/* Global style to hide default cursor */}
       <style jsx global>{`
         body {
           cursor: none;
-        }
-        
-        @media (max-width: 768px) {
-          body {
-            cursor: auto !important;
-          }
         }
       `}</style>
     </>

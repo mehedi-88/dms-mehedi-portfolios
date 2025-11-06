@@ -79,63 +79,63 @@ export function ContactEnhanced() {
   };
 
   return (
-    <section className="py-20 px-4 md:px-8 max-w-6xl mx-auto">
+    <section className="py-12 sm:py-16 md:py-20 lg:py-24 px-4 sm:px-6 md:px-8 lg:px-12 max-w-7xl mx-auto">
       <motion.div
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
       >
-        <motion.h2 variants={itemVariants} className="heading-2 mb-4 text-center">
+        <motion.h2 variants={itemVariants} className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 text-center">
           Get In <span className="text-[#00C4FF]">Touch</span>
         </motion.h2>
         <motion.p
           variants={itemVariants}
-          className="body-text text-center text-[#8D8D8D] mb-12 max-w-2xl mx-auto"
+          className="text-base sm:text-lg md:text-xl text-center text-[#8D8D8D] mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed"
         >
           Have a project in mind? Let's collaborate and create something amazing together.
         </motion.p>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
           {/* Contact Information */}
-          <motion.div variants={itemVariants} className="space-y-6">
-            <div className="glass rounded-xl p-6 border-2 border-[#1254FF] border-opacity-30 hover:border-[#00C4FF] transition-all shadow-lg shadow-[#1254FF]/10 hover:shadow-[#00C4FF]/20">
-              <h3 className="heading-3 text-[#1254FF] mb-4">Direct Contact</h3>
-              <div className="space-y-4">
+          <motion.div variants={itemVariants} className="space-y-4 md:space-y-6">
+            <div className="glass rounded-xl p-4 sm:p-6 border-2 border-[#1254FF] border-opacity-30 hover:border-[#00C4FF] transition-all shadow-lg shadow-[#1254FF]/10 hover:shadow-[#00C4FF]/20">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-[#1254FF] mb-3 sm:mb-4">Direct Contact</h3>
+              <div className="space-y-3 sm:space-y-4">
                 <motion.div
-                  className="flex items-center space-x-3"
+                  className="flex items-center space-x-2 sm:space-x-3"
                   whileHover={{ x: 5 }}
                 >
-                  <Mail className="w-6 h-6 text-[#00C4FF]" />
+                  <Mail className="w-5 h-5 sm:w-6 sm:h-6 text-[#00C4FF] flex-shrink-0" />
                   <a
                     href="mailto:dmsmehedis@gmail.com"
-                    className="text-[#8D8D8D] hover:text-[#00C4FF] transition-colors"
+                    className="text-[#8D8D8D] hover:text-[#00C4FF] transition-colors text-sm sm:text-base break-all"
                   >
                     dmsmehedis@gmail.com
                   </a>
                 </motion.div>
                 <motion.div
-                  className="flex items-center space-x-3"
+                  className="flex items-center space-x-2 sm:space-x-3"
                   whileHover={{ x: 5 }}
                 >
-                  <MessageCircle className="w-6 h-6 text-[#00C4FF]" />
+                  <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-[#00C4FF] flex-shrink-0" />
                   <a
                     href="https://wa.me/8801817938342"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#8D8D8D] hover:text-[#00C4FF] transition-colors"
+                    className="text-[#8D8D8D] hover:text-[#00C4FF] transition-colors text-sm sm:text-base"
                   >
                     Chat on WhatsApp
                   </a>
                 </motion.div>
                 <motion.div
-                  className="flex items-center space-x-3"
+                  className="flex items-center space-x-2 sm:space-x-3"
                   whileHover={{ x: 5 }}
                 >
-                  <Phone className="w-6 h-6 text-[#00C4FF]" />
+                  <Phone className="w-5 h-5 sm:w-6 sm:h-6 text-[#00C4FF] flex-shrink-0" />
                   <a
                     href="tel:+8801817938342"
-                    className="text-[#8D8D8D] hover:text-[#00C4FF] transition-colors"
+                    className="text-[#8D8D8D] hover:text-[#00C4FF] transition-colors text-sm sm:text-base"
                   >
                     +880 1817 938342
                   </a>
@@ -143,9 +143,9 @@ export function ContactEnhanced() {
               </div>
             </div>
 
-            <div className="glass rounded-xl p-6 border border-[#1254FF] border-opacity-20 hover:border-[#00C4FF] transition-colors">
-              <h3 className="heading-3 text-[#1254FF] mb-4">Connect with Me</h3>
-              <div className="flex gap-6">
+            <div className="glass rounded-xl p-4 sm:p-6 border border-[#1254FF] border-opacity-20 hover:border-[#00C4FF] transition-colors">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-[#1254FF] mb-3 sm:mb-4">Connect with Me</h3>
+              <div className="flex gap-4 sm:gap-6">
                 <motion.a
                   href="https://www.linkedin.com/in/dms-mehedi-digital-marketing-expert-bangladesh/"
                   target="_blank"
@@ -154,7 +154,7 @@ export function ContactEnhanced() {
                   whileHover={{ scale: 1.2, rotate: 10 }}
                   aria-label="LinkedIn"
                 >
-                  <Linkedin className="w-8 h-8" />
+                  <Linkedin className="w-6 h-6 sm:w-8 sm:h-8" />
                 </motion.a>
                 <motion.a
                   href="https://github.com/mehedi-88"
@@ -164,7 +164,7 @@ export function ContactEnhanced() {
                   whileHover={{ scale: 1.2, rotate: 10 }}
                   aria-label="GitHub"
                 >
-                  <Github className="w-8 h-8" />
+                  <Github className="w-6 h-6 sm:w-8 sm:h-8" />
                 </motion.a>
               </div>
             </div>
@@ -174,10 +174,10 @@ export function ContactEnhanced() {
           <motion.form
             variants={itemVariants}
             onSubmit={handleSubmit}
-            className="glass rounded-xl p-8 space-y-4 border border-[#1254FF] border-opacity-20"
+            className="glass rounded-xl p-4 sm:p-6 md:p-8 space-y-3 sm:space-y-4 border border-[#1254FF] border-opacity-20"
           >
             <div>
-              <label className="block text-[#00C4FF] mb-2 font-semibold">
+              <label className="block text-[#00C4FF] mb-1 sm:mb-2 font-semibold text-sm sm:text-base">
                 Full Name
               </label>
               <input
@@ -186,13 +186,13 @@ export function ContactEnhanced() {
                 value={formData.fullName}
                 onChange={handleChange}
                 required
-                className="w-full bg-black bg-opacity-50 border border-[#1254FF] border-opacity-30 rounded-lg px-4 py-2 text-white placeholder-[#8D8D8D] focus:outline-none focus:border-[#00C4FF] transition-colors"
+                className="w-full bg-black bg-opacity-50 border border-[#1254FF] border-opacity-30 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-[#8D8D8D] focus:outline-none focus:border-[#00C4FF] transition-colors text-sm sm:text-base"
                 placeholder="Your full name"
               />
             </div>
 
             <div>
-              <label className="block text-[#00C4FF] mb-2 font-semibold">
+              <label className="block text-[#00C4FF] mb-1 sm:mb-2 font-semibold text-sm sm:text-base">
                 Email
               </label>
               <input
@@ -201,13 +201,13 @@ export function ContactEnhanced() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full bg-black bg-opacity-50 border border-[#1254FF] border-opacity-30 rounded-lg px-4 py-2 text-white placeholder-[#8D8D8D] focus:outline-none focus:border-[#00C4FF] transition-colors"
+                className="w-full bg-black bg-opacity-50 border border-[#1254FF] border-opacity-30 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-[#8D8D8D] focus:outline-none focus:border-[#00C4FF] transition-colors text-sm sm:text-base"
                 placeholder="your@email.com"
               />
             </div>
 
             <div>
-              <label className="block text-[#00C4FF] mb-2 font-semibold">
+              <label className="block text-[#00C4FF] mb-1 sm:mb-2 font-semibold text-sm sm:text-base">
                 Phone Number
               </label>
               <input
@@ -215,13 +215,13 @@ export function ContactEnhanced() {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full bg-black bg-opacity-50 border border-[#1254FF] border-opacity-30 rounded-lg px-4 py-2 text-white placeholder-[#8D8D8D] focus:outline-none focus:border-[#00C4FF] transition-colors"
+                className="w-full bg-black bg-opacity-50 border border-[#1254FF] border-opacity-30 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-[#8D8D8D] focus:outline-none focus:border-[#00C4FF] transition-colors text-sm sm:text-base"
                 placeholder="(123) 456-7890"
               />
             </div>
 
             <div>
-              <label className="block text-[#00C4FF] mb-2 font-semibold">
+              <label className="block text-[#00C4FF] mb-1 sm:mb-2 font-semibold text-sm sm:text-base">
                 Service
               </label>
               <select
@@ -229,7 +229,7 @@ export function ContactEnhanced() {
                 value={formData.service}
                 onChange={handleChange}
                 required
-                className="w-full bg-black bg-opacity-50 border border-[#1254FF] border-opacity-30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-[#00C4FF] transition-colors"
+                className="w-full bg-black bg-opacity-50 border border-[#1254FF] border-opacity-30 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white focus:outline-none focus:border-[#00C4FF] transition-colors text-sm sm:text-base"
               >
                 <option value="" disabled>
                   Select a service
@@ -244,7 +244,7 @@ export function ContactEnhanced() {
             </div>
 
             <div>
-              <label className="block text-[#00C4FF] mb-2 font-semibold">
+              <label className="block text-[#00C4FF] mb-1 sm:mb-2 font-semibold text-sm sm:text-base">
                 Message
               </label>
               <textarea
@@ -252,8 +252,8 @@ export function ContactEnhanced() {
                 value={formData.message}
                 onChange={handleChange}
                 required
-                rows={4}
-                className="w-full bg-black bg-opacity-50 border border-[#1254FF] border-opacity-30 rounded-lg px-4 py-2 text-white placeholder-[#8D8D8D] focus:outline-none focus:border-[#00C4FF] resize-none transition-colors"
+                rows={3}
+                className="w-full bg-black bg-opacity-50 border border-[#1254FF] border-opacity-30 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder-[#8D8D8D] focus:outline-none focus:border-[#00C4FF] resize-none transition-colors text-sm sm:text-base"
                 placeholder="Your message..."
               />
             </div>

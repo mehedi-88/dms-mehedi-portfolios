@@ -51,24 +51,24 @@ export function ServicesEnhanced() {
   };
 
   return (
-    <section className="py-20 px-4 md:px-8 max-w-6xl mx-auto">
+    <section className="py-12 sm:py-16 md:py-20 lg:py-24 px-4 sm:px-6 md:px-8 lg:px-12 max-w-7xl mx-auto">
       <motion.div
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
       >
-        <motion.h2 variants={itemVariants} className="heading-2 mb-4 text-center">
+        <motion.h2 variants={itemVariants} className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 text-center">
           Digital <span className="text-[#00C4FF]">Services</span>
         </motion.h2>
         <motion.p
           variants={itemVariants}
-          className="body-text text-center text-[#8D8D8D] mb-12 max-w-2xl mx-auto"
+          className="text-base sm:text-lg md:text-xl text-center text-[#8D8D8D] mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed"
         >
           Comprehensive solutions tailored to elevate your digital presence and drive business growth.
         </motion.p>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {services.map((service, index) => (
             <motion.div
               key={index}
@@ -88,7 +88,7 @@ export function ServicesEnhanced() {
 
               {/* Card Container */}
               <motion.div
-                className="glass rounded-xl p-8 h-full relative z-10 border border-[#1254FF] border-opacity-20"
+                className="glass rounded-xl p-4 sm:p-6 md:p-8 h-full relative z-10 border border-[#1254FF] border-opacity-20"
                 animate={{
                   y: hoveredIndex === index ? -10 : 0,
                   borderColor: hoveredIndex === index ? '#00C4FF' : 'rgba(18, 84, 255, 0.2)',
@@ -97,7 +97,7 @@ export function ServicesEnhanced() {
               >
                 {/* Icon with Rotation */}
                 <motion.div
-                  className="text-6xl mb-6 inline-block"
+                  className="text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6 inline-block"
                   animate={{
                     rotate: hoveredIndex === index ? 360 : 0,
                     scale: hoveredIndex === index ? 1.2 : 1,
@@ -108,12 +108,12 @@ export function ServicesEnhanced() {
                 </motion.div>
 
                 {/* Title */}
-                <h3 className="heading-3 mb-3 text-[#1254FF] group-hover:text-[#00C4FF] transition-colors">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-3 text-[#1254FF] group-hover:text-[#00C4FF] transition-colors">
                   {service.title}
                 </h3>
 
                 {/* Description */}
-                <p className="body-text text-[#8D8D8D] mb-6 text-sm leading-relaxed">
+                <p className="text-sm sm:text-base md:text-lg text-[#8D8D8D] mb-4 sm:mb-6 leading-relaxed">
                   {service.description}
                 </p>
 
@@ -141,9 +141,9 @@ export function ServicesEnhanced() {
                     y: hoveredIndex === index ? 0 : 10,
                   }}
                   transition={{ duration: 0.3 }}
-                  className="mt-6 pt-6 border-t border-[#1254FF] border-opacity-20"
+                  className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-[#1254FF] border-opacity-20"
                 >
-                  <button className="text-[#00C4FF] hover:text-white text-sm font-semibold transition-colors">
+                  <button className="text-[#00C4FF] hover:text-white text-sm sm:text-base font-semibold transition-colors">
                     Learn More →
                   </button>
                 </motion.div>

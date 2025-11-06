@@ -8,7 +8,6 @@ import { Projects } from '@/components/Projects';
 import { Skills } from '@/components/Skills';
 import { ContactEnhanced } from '@/components/ContactEnhanced';
 import { TestimonialsEnhanced } from '@/components/TestimonialsEnhanced';
-import { ChatbotWidgetSupabase } from '@/components/ChatbotWidgetSupabase';
 
 export default function Home() {
   // ✅ Removed PreloaderAI - already rendered in RootLayoutClient
@@ -52,7 +51,7 @@ export default function Home() {
           {/* Hidden section for navigation */}
         </div>
         {/* ✅ Footer and PreloaderAI are rendered in RootLayoutClient */}
-        <ChatbotWidgetSupabase />
+
       </main>
     </>
   );

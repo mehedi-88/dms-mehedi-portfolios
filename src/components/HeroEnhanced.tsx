@@ -96,21 +96,21 @@ export function HeroEnhanced() {
   const services = HOME_SECTION_CONTENT.highlights;
 
   return (
-    <section className="relative w-full min-h-screen flex items-center justify-center overflow-hidden py-20 bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-black dark:to-[#0a0e27] transition-colors duration-300">
+    <section className="relative w-full min-h-screen flex items-center justify-center overflow-hidden py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-black dark:to-[#0a0e27] transition-colors duration-300">
       <canvas ref={canvasRef} className="absolute inset-0 z-0" />
 
-      <div className="relative z-10 w-full max-w-6xl px-4 md:px-8">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
+      <div className="relative z-10 w-full max-w-7xl px-4 sm:px-6 md:px-8 lg:px-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
           {/* Left Side: Text Block */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
-            className="space-y-8"
+            className="space-y-6 md:space-y-8"
           >
             <div>
               <motion.h1
-                className="heading-1 mb-4 bg-gradient-to-r from-[#1254FF] via-[#00C4FF] to-[#1254FF] bg-clip-text text-transparent"
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 md:mb-4 bg-gradient-to-r from-[#1254FF] via-[#00C4FF] to-[#1254FF] bg-clip-text text-transparent leading-tight"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
@@ -120,7 +120,7 @@ export function HeroEnhanced() {
 
               {/* Rotating Services with Framer Motion */}
               <motion.div
-                className="text-xl md:text-2xl text-[#00C4FF] font-semibold h-12 flex items-center"
+                className="text-lg sm:text-xl md:text-2xl text-[#00C4FF] font-semibold h-10 md:h-12 flex items-center"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.8 }}
@@ -136,7 +136,7 @@ export function HeroEnhanced() {
             </div>
 
             <motion.p
-              className="body-text text-muted max-w-xl"
+              className="text-base sm:text-lg md:text-xl text-muted max-w-xl leading-relaxed"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
@@ -174,7 +174,7 @@ export function HeroEnhanced() {
             transition={{ delay: 0.4, duration: 0.8 }}
             className="flex justify-center items-center"
           >
-            <div className="relative w-80 h-80 group">
+            <div className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-96 lg:h-96 group">
               {/* Modern Square Glow Background - Rotating */}
               <motion.div
                 className="absolute inset-0 rounded-2xl"
@@ -216,7 +216,7 @@ export function HeroEnhanced() {
               {/* Profile Image Container */}
               <motion.div
                 className="absolute inset-3 rounded-xl overflow-hidden border-2 border-white/20 bg-gradient-to-br from-[#1254FF]/10 to-[#00C4FF]/10 backdrop-blur-sm flex items-center justify-center"
-                whileHover={{ 
+                whileHover={{
                   scale: 1.02,
                   boxShadow: '0 0 30px rgba(0, 196, 255, 0.6)'
                 }}
@@ -243,7 +243,7 @@ export function HeroEnhanced() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2, duration: 0.8 }}
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+          className="absolute bottom-4 sm:bottom-6 md:bottom-8 left-1/2 transform -translate-x-1/2"
         >
           <motion.svg
             className="w-6 h-6 text-[#00C4FF]"

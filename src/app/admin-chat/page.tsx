@@ -35,6 +35,24 @@ export default function AdminChatPage() {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const channelsRef = useRef<RealtimeChannel[]>([]);
 
+  // Function to mark all user messages as seen in the current chat
+  const markMessagesAsSeen = async (chatId: string) => {
+    try {
+      const { error } = await supabase
+        .from('chat_messages')
+        .update({ status: 'seen' })
+        .eq('chat_id', chatId)
+        .eq('sender', 'user')
+        .neq('status', 'seen');
+
+      if (error) {
+        console.error('Error marking messages as seen:', error);
+      }
+    } catch (err) {
+      console.error('Failed to mark messages as seen:', err);
+    }
+  };
+
   // Initialize admin presence
   useEffect(() => {
     const initializeAdmin = async () => {
@@ -98,7 +116,7 @@ export default function AdminChatPage() {
     };
   }, []);
 
-  // Fetch messages for selected chat
+  // Fetch messages for selected chat and mark user messages as seen
   useEffect(() => {
     if (!selectedChat) {
       setMessages([]);
@@ -113,7 +131,9 @@ export default function AdminChatPage() {
         .order('created_at', { ascending: true });
 
       if (error) console.error('Error fetching messages:', error);
-      else setMessages(data || []);
+      else {
+        setMessages(data || []);
+      }
     };
 
     fetchMessages();
@@ -129,7 +149,7 @@ export default function AdminChatPage() {
           table: 'chat_messages',
           filter: `chat_id=eq.${selectedChat}`,
         },
-        (payload: any) => {
+        async (payload: any) => {
           const newMessage: Message = {
             id: payload.new.id,
             chat_id: payload.new.chat_id,
@@ -142,6 +162,11 @@ export default function AdminChatPage() {
             if (prev.some(m => m.id === newMessage.id)) return prev;
             return [...prev, newMessage];
           });
+
+          // If this is a user message in the currently selected chat, mark it as seen immediately
+          if (newMessage.sender === 'user' && newMessage.chat_id === selectedChat) {
+            await markMessagesAsSeen(selectedChat);
+          }
         }
       )
       .on(
@@ -330,12 +355,21 @@ export default function AdminChatPage() {
                   sessions.map((session) => (
                     <motion.button
                       key={session.id}
-                      onClick={() => setSelectedChat(session.id)}
-                      className={`w-full p-4 rounded-xl border transition-all text-left ${
-                        selectedChat === session.id
-                          ? 'border-[#00C4FF] bg-gradient-to-br from-[#1254FF]/20 to-[#00C4FF]/20'
-                          : 'border-white/10 hover:border-[#00C4FF]/40'
-                      }`}
+                      onClick={async () => {
+                        setSelectedChat(session.id);
+                        // Update admin presence when selecting a chat
+                        await supabase.from('user_presence').upsert({
+                          user_id: 'admin',
+                          is_online: true,
+                          last_seen: new Date().toISOString(),
+                        });
+                        // Mark messages as seen immediately when focusing on chat
+                        await markMessagesAsSeen(session.id);
+                      }}
+                      className={`w-full p-4 rounded-xl border transition-all text-left ${selectedChat === session.id
+                        ? 'border-[#00C4FF] bg-gradient-to-br from-[#1254FF]/20 to-[#00C4FF]/20'
+                        : 'border-white/10 hover:border-[#00C4FF]/40'
+                        }`}
                       whileHover={{ x: 5 }}
                     >
                       <div className="flex items-center justify-between mb-1">
@@ -400,7 +434,7 @@ export default function AdminChatPage() {
                         </div>
                       </motion.div>
                     ))}
-                    
+
                     {/* User typing indicator */}
                     {userTyping && (
                       <motion.div
@@ -433,7 +467,7 @@ export default function AdminChatPage() {
                         </div>
                       </motion.div>
                     )}
-                    
+
                     <div ref={messagesEndRef} />
                   </div>
 

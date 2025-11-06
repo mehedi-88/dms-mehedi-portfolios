@@ -5,9 +5,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { PreloaderAI } from '@/components/PreloaderAI';
 import { Footer } from '@/components/Footer';
 import { Navbar } from '@/components/Navbar';
-
-// ✅ Removed ChatbotWidget - now using ChatbotWidgetSupabase in page.tsx
-// This prevents duplicate chatbot rendering and conflicts
+import { ChatbotWidgetSupabase } from '@/components/ChatbotWidgetSupabase';
 
 export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -34,10 +32,10 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
 
   return (
     <body className="overflow-x-hidden bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-black dark:to-[#0a0e27] transition-colors duration-300">
-      <ThemeProvider 
-        attribute="class" 
-        defaultTheme="system" 
-        enableSystem 
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
         enableColorScheme
         disableTransitionOnChange={false}
       >
@@ -45,7 +43,7 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
         <Navbar />
         {children}
         <Footer />
-        {/* ✅ ChatbotWidgetSupabase is rendered in page.tsx */}
+        {!isLoading && <ChatbotWidgetSupabase />}
       </ThemeProvider>
     </body>
   );
