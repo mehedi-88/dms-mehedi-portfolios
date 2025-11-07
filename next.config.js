@@ -31,4 +31,9 @@ const nextConfig = {
   trailingSlash: true,
 };
 
+// Optional: Warn if not using npm for build
+if (process.env.npm_execpath && !process.env.npm_execpath.includes('npm-cli.js')) {
+  console.warn('\u001b[33m[WARNING] It is recommended to use npm (not pnpm/yarn) for building this project.\u001b[0m');
+}
+
 module.exports = nextConfig;
