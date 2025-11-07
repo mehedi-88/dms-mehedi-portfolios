@@ -3,9 +3,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
-import { v4 as uuidv4 } from 'uuid';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-// Note: Removed 'TypingIndicator' import as we'll build it inline
+import { v4 as uuidv4 } from 'uuid';
+// Note: This component assumes you have a 'TypingIndicator' component imported
+// Since it wasn't provided, I've re-created the animation logic inside this file
+// in the JSX for "adminTyping".
 
 interface Message {
   id: string;
@@ -33,9 +35,11 @@ export function ChatbotWidgetSupabase() {
   const lastMessageCountRef = useRef(0);
   const [aiThinking, setAiThinking] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+  
+  // *** দ্রষ্টব্য: আমি 'isMobile' স্টেটটি সরিয়ে দিয়েছি কারণ এটি আর প্রয়োজন নেই ***
+  // const [isMobile, setIsMobile] = useState(false);
 
-  // --- START TYPING LOGIC (Unchanged) ---
+  // --- START TYPING LOGIC ---
   const isTypingRef = useRef(false);
 
   const updateTypingStatus = useCallback(async (isTyping: boolean) => {
@@ -103,17 +107,7 @@ export function ChatbotWidgetSupabase() {
 
   // Detect mobile
   useEffect(() => {
-    const checkIfMobile = () => {
-      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-        ('ontouchstart' in window) ||
-        (window.innerWidth <= 768);
-      setIsMobile(isMobileDevice);
-    };
-    checkIfMobile();
-    window.addEventListener('resize', checkIfMobile);
-    return () => {
-      window.removeEventListener('resize', checkIfMobile);
-    };
+    // *** দ্রষ্টব্য: 'isMobile' ডিটেকশন আর প্রয়োজন নেই, তাই আমি এটি মুছে ফেলেছি ***
   }, []);
 
   // Initialize Chat
@@ -518,37 +512,24 @@ export function ChatbotWidgetSupabase() {
         <span className="absolute inset-0 z-0 pointer-events-none">
           {adminOnline ? (
             <svg width="100%" height="100%" viewBox="0 0 80 80" className="drop-shadow-lg">
-              {isMobile ? (
-                <>
-                  <circle cx="40" cy="40" r="36" fill="#C3FFD6" opacity={0.09} />
-                  <path
-                    d="M32 54 Q40 67 48 54 M24 46 Q40 63 56 46"
-                    stroke="url(#neuralGradient1)" strokeWidth="3" fill="none"
-                    strokeDasharray="20 17"
-                    strokeDashoffset="0"
-                  />
-                  <circle
-                    cx="40" cy="40" r="20" fill="#81FFD1" opacity={0.18}
-                  />
-                </>
-              ) : (
-                <>
-                  <motion.circle cx="40" cy="40" r="36" fill="#C3FFD6" opacity={0.09}
-                    animate={{ scale: [1, 1.13, 1], opacity: [0.12, 0.21, 0.09] }}
-                    transition={{ duration: 4.6, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }} />
-                  <motion.path
-                    d="M32 54 Q40 67 48 54 M24 46 Q40 63 56 46"
-                    stroke="url(#neuralGradient1)" strokeWidth="3" fill="none"
-                    animate={{ strokeDashoffset: [20, 0, -20] }}
-                    strokeDasharray="20 17"
-                    transition={{ duration: 3.4, repeat: Infinity, ease: 'linear' }}
-                  />
-                  <motion.circle
-                    cx="40" cy="40" r="20" fill="#81FFD1" opacity={0.18}
-                    animate={{ scale: [1, .97, 1], opacity: [0.18, 0.28, 0.11] }}
-                    transition={{ duration: 2.6, repeat: Infinity }} />
-                </>
-              )}
+              {/* === FIX: Removed isMobile check, always render animation === */}
+              <>
+                <motion.circle cx="40" cy="40" r="36" fill="#C3FFD6" opacity={0.09}
+                  animate={{ scale: [1, 1.13, 1], opacity: [0.12, 0.21, 0.09] }}
+                  transition={{ duration: 4.6, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }} />
+                <motion.path
+                  d="M32 54 Q40 67 48 54 M24 46 Q40 63 56 46"
+                  stroke="url(#neuralGradient1)" strokeWidth="3" fill="none"
+                  animate={{ strokeDashoffset: [20, 0, -20] }}
+                  strokeDasharray="20 17"
+                  transition={{ duration: 3.4, repeat: Infinity, ease: 'linear' }}
+                />
+                <motion.circle
+                  cx="40" cy="40" r="20" fill="#81FFD1" opacity={0.18}
+                  animate={{ scale: [1, .97, 1], opacity: [0.18, 0.28, 0.11] }}
+                  transition={{ duration: 2.6, repeat: Infinity }} />
+              </>
+              {/* === END FIX === */}
               <radialGradient id="neuralSparkNucleus" cx="50%" cy="50%" r="61%">
                 <stop offset="0%" stopColor="#fff" stopOpacity=".96" />
                 <stop offset="32%" stopColor="#31ffda" stopOpacity=".72" />
@@ -565,37 +546,24 @@ export function ChatbotWidgetSupabase() {
             </svg>
           ) : (
             <svg width="100%" height="100%" viewBox="0 0 80 80" className="drop-shadow-lg">
-              {isMobile ? (
-                <>
-                  <circle cx="40" cy="40" r="36" fill="#FFD1D5" opacity={0.11} />
-                  <path
-                    d="M32 54 Q40 67 48 54 M24 46 Q40 63 56 46"
-                    stroke="url(#neuralGradientR)" strokeWidth="3" fill="none"
-                    strokeDasharray="20 17"
-                    strokeDashoffset="0"
-                  />
-                  <circle
-                    cx="40" cy="40" r="20" fill="#DF5852" opacity={0.18}
-                  />
-                </>
-              ) : (
-                <>
-                  <motion.circle cx="40" cy="40" r="36" fill="#FFD1D5" opacity={0.11}
-                    animate={{ scale: [1.04, 1, 1.12], opacity: [.11, .23, .07] }}
-                    transition={{ duration: 4.2, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }} />
-                  <motion.path
-                    d="M32 54 Q40 67 48 54 M24 46 Q40 63 56 46"
-                    stroke="url(#neuralGradientR)" strokeWidth="3" fill="none"
-                    animate={{ strokeDashoffset: [21, -14, 21] }}
-                    strokeDasharray="20 17"
-                    transition={{ duration: 3.9, repeat: Infinity, ease: 'linear' }}
-                  />
-                  <motion.circle
-                    cx="40" cy="40" r="20" fill="#DF5852" opacity={0.18}
-                    animate={{ scale: [1, .99, 1.02], opacity: [0.18, 0.34, 0.13] }}
-                    transition={{ duration: 2.6, repeat: Infinity }} />
-                </>
-              )}
+              {/* === FIX: Removed isMobile check, always render animation === */}
+              <>
+                <motion.circle cx="40" cy="40" r="36" fill="#FFD1D5" opacity={0.11}
+                  animate={{ scale: [1.04, 1, 1.12], opacity: [.11, .23, .07] }}
+                  transition={{ duration: 4.2, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }} />
+                <motion.path
+                  d="M32 54 Q40 67 48 54 M24 46 Q40 63 56 46"
+                  stroke="url(#neuralGradientR)" strokeWidth="3" fill="none"
+                  animate={{ strokeDashoffset: [21, -14, 21] }}
+                  strokeDasharray="20 17"
+                  transition={{ duration: 3.9, repeat: Infinity, ease: 'linear' }}
+                />
+                <motion.circle
+                  cx="40" cy="40" r="20" fill="#DF5852" opacity={0.18}
+                  animate={{ scale: [1, .99, 1.02], opacity: [0.18, 0.34, 0.13] }}
+                  transition={{ duration: 2.6, repeat: Infinity }} />
+              </>
+              {/* === END FIX === */}
               <radialGradient id="neuralCoreR" cx="50%" cy="50%" r="61%">
                 <stop offset="0%" stopColor="#fff" stopOpacity=".91" />
                 <stop offset="37%" stopColor="#ff6363" stopOpacity=".78" />
@@ -619,11 +587,11 @@ export function ChatbotWidgetSupabase() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 10, originX: 1, originY: 1 }}
-            animate={{ opacity: 1, scale: 1, y: 0, originX: 1, originY: 1 }}
-            exit={{ opacity: 0, scale: 0.9, y: 10, originX: 1, originY: 1 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="fixed bottom-28 right-6 z-40 w-[calc(100vw-2rem)] sm:w-96 h-[500px] max-h-[calc(100vh-8rem)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[#1254FF]/30 bg-gradient-to-b from-gray-900 to-black backdrop-blur-xl dark:from-gray-900 dark:to-black"
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.3 }}
+            className="fixed bottom-24 right-6 z-40 w-[calc(100vw-2rem)] sm:w-96 h-[500px] max-h-[calc(100vh-6rem)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[#1254FF]/30 bg-gradient-to-b from-gray-900 to-black backdrop-blur-xl dark:from-gray-900 dark:to-black"
           >
             {/* Enhanced Header */}
             <div className="bg-gradient-to-r from-[#1254FF] via-[#00C4FF] to-[#1254FF] p-5 text-white shadow-lg">
@@ -688,29 +656,24 @@ export function ChatbotWidgetSupabase() {
                     </span>
                     <div className="relative z-10"><span className="text-[1.08rem] leading-snug whitespace-pre-line" style={{ wordBreak: 'break-word' }}>{message.message}</span></div>
                     
-                    {/* --- START: SEEN STATUS FIX (TASK 3) --- */}
+                    {/* --- START: SEEN STATUS FIX --- */}
                     {message.sender === 'user' && (
                       <span className={`flex items-center justify-end gap-1 w-full mt-2 text-[11px] font-semibold select-none ${message.status === 'seen' ? 'text-[#49ff8c]' : 'text-white/60'}`} style={{ fontFamily: 'Orbitron,Arial,sans-serif' }}>
                         {message.status === 'seen' ? (
-                          <motion.span
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="flex items-center gap-1"
-                            style={{ filter: 'drop-shadow(0 0 3px #49ff8c66)' }} // Soft glow
-                          >
+                          <>
                             <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className="inline -mt-0.5" style={{ verticalAlign: 'middle' }}>
                               <path d="M2.5 6.5l3.5 3.0 5.5-7.0" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
                               <path d="M7.5 9.5l2.5 2 5.5-7.0" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                             <span className="ml-1 font-bold">Seen</span>
-                          </motion.span>
+                          </>
                         ) : (
-                          <span className="flex items-center gap-1">
+                          <>
                             <svg width="15" height="15" fill="none" viewBox="0 0 16 16" className="inline -mt-0.5" style={{ verticalAlign: 'middle' }}>
                               <path d="M3.5 8.25l3.5 3.25 5.5-7.25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                             <span className="ml-1">Sent</span>
-                          </span>
+                          </>
                         )}
                       </span>
                     )}
@@ -718,29 +681,31 @@ export function ChatbotWidgetSupabase() {
                   </div>
                 </motion.div>
               ))}
-
-              {/* --- START: ADMIN TYPING ANIMATION FIX (TASK 2) --- */}
+              
+              {/* --- START: TYPING ANIMATION FIX --- */}
               <AnimatePresence>
                 {adminTyping && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
+                    key="admin-typing"
+                    initial={{ opacity: 0, scale: 0.7 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.3 } }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    exit={{ opacity: 0, scale: 0.6 }}
+                    transition={{ type: 'spring', duration: 0.65 }}
                     className="relative my-2 flex justify-start items-end"
                   >
                     <span className="mr-2 flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[#1254ff] to-[#0ed6a7] flex items-center justify-center shadow-lg border-2 border-white select-none" style={{ fontFamily: 'Orbitron', fontWeight: 'bold', fontSize: '1.11rem', color: '#fff' }}>A</span>
-                    <div className="px-5 py-3 rounded-2xl backdrop-blur-2xl bg-gradient-to-br from-blue-500/60 via-cyan-400/40 to-cyan-700/30 border border-white/15 shadow-lg">
-                      <div className="w-8 h-5 flex items-center justify-center">
+                    <div className="relative px-5 py-3 rounded-2xl backdrop-blur-2xl bg-gradient-to-br from-blue-500/60 via-cyan-400/40 to-cyan-700/30 border border-white/15 shadow-[0_0_32px_10px_rgba(0,212,255,0.12)]">
+                      <svg width="42" height="19" className="absolute -top-2 left-2 pointer-events-none" viewBox="0 0 42 19" fill="none"><motion.ellipse cx="21" cy="9" rx="16" ry="8" fill="#73e2fd" opacity={0.12} animate={{ scaleX: [1, 1.08, 1], scaleY: [1, 1.04, 1] }} transition={{ duration: 2, repeat: Infinity }} /></svg>
+                      <motion.div animate={{ scale: [1, 1.05, 1], filter: ['blur(0px)', 'blur(1.2px)', 'blur(2px)', 'blur(0.5px)'] }} transition={{ duration: 2, repeat: Infinity }} className="w-8 h-5 flex items-center justify-center">
                         <motion.div animate={{ y: [0, -3, 0], opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: 0 }} className="inline-block w-2 h-2 bg-white rounded-full mx-0.5" />
                         <motion.div animate={{ y: [0, -3, 0], opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: 0.22 }} className="inline-block w-2 h-2 bg-white rounded-full mx-0.5" />
                         <motion.div animate={{ y: [0, -3, 0], opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: 0.45 }} className="inline-block w-2 h-2 bg-white rounded-full mx-0.5" />
-                      </div>
+                      </motion.div>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
-              {/* --- END: ADMIN TYPING ANIMATION FIX --- */}
+              {/* --- END: TYPING ANIMATION FIX --- */}
 
               <AnimatePresence>
                 {aiThinking && (

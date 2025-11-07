@@ -59,7 +59,7 @@ To complete the setup, you need to add these images to your `public` folder:
 1. Add your images to the `public` folder
 2. Test the application with `pnpm dev`
 3. Verify all images load correctly
-4. Update any content in `src/lib/assets.ts` as needed
+4. Update any content in `src/lib/assets.ts` as nee
 
 ## Environment Variables
 

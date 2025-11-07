@@ -9,9 +9,10 @@ import { RootLayoutClient } from '@/components/RootLayoutClient';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'DMS Mehedi - AI-Powered Developer & Digital Strategist',
+  title: 'DMS Mehedi - AI-Powered Best Digital Marketer in Bangladesh & Ai-Web Developer ',
   description:
-    'Portfolio of DMS Mehedi, an AI-powered developer, digital strategist, and creator specializing in Next.js, Firebase, and AI integration.',
+    'DMS Mehedi, an AI-powered developer, digital strategist, AI-Powered Best Digital Marketer in Bangladesh & Ai-Web Developer.',
+    
   keywords: [
     'AI Developer',
     'Digital Strategist',
@@ -24,11 +25,11 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://dms-mehedi.com',
+    url: 'https://dms-mehedi.vercel.app',
     title: 'DMS Mehedi - AI-Powered Developer & Digital Strategist',
     description:
-      'Portfolio of DMS Mehedi, an AI-powered developer, digital strategist, and creator.',
-    siteName: 'DMS Mehedi Portfolio',
+      'DMS Mehedi, an AI-powered developer, Digital Strategist, and Best Digital Marketer in Bangladesh.',
+    siteName: 'DMS Mehedi Digital Marketing Expertise',
   },
 };
 
@@ -44,7 +45,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f7fa" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
-        <link rel="icon" href="/favicon.ico" />
+  <link rel="icon" href="/logo-dms-mehedi.png" type="image/png" />
         {/* JSON-LD for SEO */}
         <script
           type="application/ld+json"
@@ -53,13 +54,13 @@ export default function RootLayout({
               '@context': 'https://schema.org',
               '@type': 'Person',
               name: 'DMS Mehedi',
-              url: 'https://dms-mehedi.com',
-              image: 'https://dms-mehedi.com/og-image.jpg',
+              url: 'https://dms-mehedi.vercel.app',
+              image: 'https://dms-mehedi.vercel.app/og-image.jpg',
               jobTitle: 'AI-Powered Developer & Digital Strategist',
               sameAs: [
-                'https://twitter.com/dmsmehedi',
-                'https://linkedin.com/in/dmsmehedi',
-                'https://github.com/dmsmehedi',
+                'https://x.com/dms_mehedi',
+                'https://www.linkedin.com/in/dms-mehedi-digital-marketing-expert-bangladesh/',
+                'https://github.com/mehedi-88',
               ],
             }),
           }}
