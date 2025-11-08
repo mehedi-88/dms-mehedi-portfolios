@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
+const FAQChatbox = dynamic(() => import('@/components/FAQChatbox'), { ssr: false });
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, Sparkles, ChevronDown, Loader2 } from 'lucide-react';
 
@@ -218,6 +220,9 @@ export default function FAQPage() {
           </p>
         </motion.div>
 
+        {/* AI Chatbox Section */}
+        <FAQChatbox />
+
         {/* FAQ Accordions by Category */}
         <motion.div
           variants={containerVariants}
@@ -289,7 +294,6 @@ export default function FAQPage() {
                           >
                             <div className="px-6 py-4 border-t border-[#1254FF]/20 bg-[#1254FF]/5">
                               <p className="text-gray-300 leading-relaxed">{faq.answer}</p>
-                              
                               {aiAnswers[faq.id] && (
                                 <motion.div
                                   initial={{ opacity: 0, y: 10 }}
