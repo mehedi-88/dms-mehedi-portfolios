@@ -46,6 +46,7 @@ export default function RootLayout({
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f7fa" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
   <link rel="icon" href="/logo-dms-mehedi.png" type="image/png" />
+      <meta name="google-site-verification" content="j_TnDFzjVMUkRKAqJ1ymzDeuakvCAwg6BrJATuUHTFw" />
         {/* JSON-LD for SEO */}
         <script
           type="application/ld+json"
