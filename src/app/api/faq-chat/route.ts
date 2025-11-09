@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// For edge runtimes, ensure process.env is available
-import process from 'process';
 
 const MOOD_PROMPTS: Record<string, string> = {
   thinking: 'You are a deep reflective AI who reasons carefully before answering.',
@@ -19,14 +17,10 @@ export async function POST(req: NextRequest) {
     
     const apiKey = process.env.OPENAI_API_KEY;
 
-    // === FIX ===
-    // স্ট্যাটাস 200 থেকে 500 এ পরিবর্তন করা হয়েছে।
-    // একটি API কী না পাওয়া একটি সার্ভার ত্রুটি (500), সফল রেসপন্স (200) নয়।
     if (!apiKey || !apiKey.startsWith('sk-')) {
-      console.error('OpenAI API key is missing or invalid.'); // সার্ভারে লগ করুন
+      console.error('OpenAI API key is missing or invalid.');
       return NextResponse.json({ error: 'OpenAI API key is missing or invalid. Please check your .env.local file.' }, { status: 500 });
     }
-    // === END FIX ===
     
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
