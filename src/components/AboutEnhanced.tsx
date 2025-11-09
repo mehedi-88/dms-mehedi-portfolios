@@ -203,7 +203,7 @@ export function AboutEnhanced() {
 </motion.button>
             </motion.div>
           </div>
-          <span>ui</span>
+        
         </motion.div>
       </div>
     </section>

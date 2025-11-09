@@ -5,7 +5,7 @@ import AnimatedCursor from '@/components/AnimatedCursor';
 import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { RootLayoutClient } from '@/components/RootLayoutClient';
-
+import { Analytics } from "@vercel/analytics/next"
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
