@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, Sparkles, ChevronDown, Loader2 } from 'lucide-react';
+import { HelpCircle, Sparkles, ChevronDown, Loader2, Send, Copy, Check, Brain, Bot, Search, Settings } from 'lucide-react';
 
 interface FAQ {
   id: number;
@@ -133,6 +133,274 @@ const faqs: FAQ[] = [
     answer: 'Yes, I provide ongoing maintenance, security updates, backups, and can help set up reliable hosting solutions.',
   },
 ];
+
+// AI Chatbox Component with 4 Modes
+const AIChatbox: React.FC = () => {
+  const [messages, setMessages] = useState<Array<{id: string, role: 'user' | 'assistant', content: string, timestamp: Date}>>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<'thinking' | 'agent' | 'research' | 'auto'>('thinking');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const aiModes = [
+    { id: 'thinking' as const, name: 'AI Thinking', icon: Brain, description: 'Creative problem solving', color: 'from-purple-500 to-pink-500' },
+    { id: 'agent' as const, name: 'Agent Mode', icon: Bot, description: 'Task automation', color: 'from-blue-500 to-cyan-500' },
+    { id: 'research' as const, name: 'Deep Research', icon: Search, description: 'In-depth analysis', color: 'from-green-500 to-emerald-500' },
+    { id: 'auto' as const, name: 'Auto Mode', icon: Settings, description: 'Adaptive responses', color: 'from-orange-500 to-red-500' }
+  ];
+
+  // Load messages from localStorage on mount
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('faq-chat-messages');
+    if (savedMessages) {
+      try {
+        const parsed = JSON.parse(savedMessages);
+        setMessages(parsed.map((msg: any) => ({ ...msg, timestamp: new Date(msg.timestamp) })));
+      } catch (error) {
+        console.error('Error loading chat messages:', error);
+      }
+    }
+  }, []);
+
+  // Save messages to localStorage whenever messages change
+  useEffect(() => {
+    localStorage.setItem('faq-chat-messages', JSON.stringify(messages));
+  }, [messages]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
+
+    const userMessage = {
+      id: Date.now().toString(),
+      role: 'user' as const,
+      content: inputMessage.trim(),
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
+    setIsLoading(true);
+    setIsTyping(true);
+
+    try {
+      const response = await fetch('/api/faq-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage.content,
+          mood: selectedMode,
+          history: messages.slice(-10) // Send last 10 messages for context
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
+
+      const data = await response.json();
+
+      const aiMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant' as const,
+        content: data.reply,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      const errorMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant' as const,
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+      setIsTyping(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const copyMessage = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      // You could add a toast notification here
+    } catch (error) {
+      console.error('Failed to copy message:', error);
+    }
+  };
+
+  const clearChat = () => {
+    setMessages([]);
+    localStorage.removeItem('faq-chat-messages');
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="glass rounded-2xl border-2 border-[#1254FF]/30 bg-gradient-to-br from-[#1254FF]/10 to-[#00C4FF]/10 overflow-hidden"
+    >
+      {/* Header */}
+      <div className="p-6 border-b border-[#1254FF]/20">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-[#1254FF] to-[#00C4FF] rounded-full flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-white">AI Assistant</h3>
+              <p className="text-sm text-gray-400">Ask me anything about DMS MEHEDI</p>
+            </div>
+          </div>
+          <motion.button
+            onClick={clearChat}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-3 py-1 text-xs text-gray-400 hover:text-white border border-gray-600 rounded-lg hover:border-gray-400 transition-colors"
+          >
+            Clear Chat
+          </motion.button>
+        </div>
+
+        {/* AI Mode Selector */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {aiModes.map((mode) => {
+            const Icon = mode.icon;
+            return (
+              <motion.button
+                key={mode.id}
+                onClick={() => setSelectedMode(mode.id)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={`p-3 rounded-xl border-2 transition-all duration-300 ${
+                  selectedMode === mode.id
+                    ? `bg-gradient-to-r ${mode.color} border-transparent text-white shadow-lg`
+                    : 'bg-white/5 border-[#1254FF]/20 text-gray-300 hover:border-[#1254FF]/40'
+                }`}
+              >
+                <Icon className="w-5 h-5 mx-auto mb-1" />
+                <div className="text-xs font-medium">{mode.name}</div>
+                <div className="text-xs opacity-75">{mode.description}</div>
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Messages Container */}
+      <div className="h-96 overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 ? (
+          <div className="text-center text-gray-400 py-8">
+            <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p className="text-lg mb-2">Start a conversation</p>
+            <p className="text-sm">Ask me anything about DMS MEHEDI&apos;s services, projects, or expertise</p>
+          </div>
+        ) : (
+          <>
+            {messages.map((message) => (
+              <motion.div
+                key={message.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className={`max-w-[80%] rounded-2xl p-4 ${
+                  message.role === 'user'
+                    ? 'bg-gradient-to-r from-[#1254FF] to-[#00C4FF] text-white'
+                    : 'bg-white/10 border border-[#1254FF]/20 text-gray-200'
+                }`}>
+                  <p className="text-sm leading-relaxed">{message.content}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs opacity-70">
+                      {message.timestamp.toLocaleTimeString()}
+                    </span>
+                    <motion.button
+                      onClick={() => copyMessage(message.content)}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="opacity-50 hover:opacity-100 transition-opacity"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+
+            {/* Typing Indicator */}
+            {isTyping && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex justify-start"
+              >
+                <div className="bg-white/10 border border-[#1254FF]/20 rounded-2xl p-4 max-w-[80%]">
+                  <div className="flex items-center gap-2">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-[#00C4FF] rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-[#00C4FF] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-[#00C4FF] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    </div>
+                    <span className="text-sm text-gray-400">AI is typing...</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className="p-4 border-t border-[#1254FF]/20">
+        <div className="flex gap-3">
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder={`Ask me anything in ${aiModes.find(m => m.id === selectedMode)?.name} mode...`}
+            className="flex-1 px-4 py-3 bg-white/5 border border-[#1254FF]/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-[#00C4FF] focus:ring-1 focus:ring-[#00C4FF] transition-colors"
+            disabled={isLoading}
+          />
+          <motion.button
+            onClick={sendMessage}
+            disabled={!inputMessage.trim() || isLoading}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-6 py-3 bg-gradient-to-r from-[#1254FF] to-[#00C4FF] text-white rounded-xl font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center gap-2"
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+            Send
+          </motion.button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 export default function FAQPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -315,6 +583,16 @@ export default function FAQPage() {
               </div>
             </div>
           ))}
+        </motion.div>
+
+        {/* AI Chatbox Component */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="mt-16"
+        >
+          <AIChatbox />
         </motion.div>
 
         {/* Still Have Questions CTA */}

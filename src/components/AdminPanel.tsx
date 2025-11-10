@@ -3,11 +3,12 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { MessageSquare, User, Wifi, WifiOff, Send, Loader2, Clock, Trash2, Star } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import TypingIndicator from './TypingIndicator';
+import Toast from './Toast';
 
 function AdminLoginModal({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState('');
@@ -96,20 +97,75 @@ export function AdminPanel() {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [toastMessages, setToastMessages] = useState<string[]>([]);
   const [aiThinking, setAiThinking] = useState(false);
+  const lastMessageCountRef = useRef(0);
+  const shouldScrollToBottomRef = useRef(true);
+  const lastPresenceToggleRef = useRef<number | null>(null);
+  const presenceDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // UI-only button handlers
-  const handleDeleteChat = (e: React.MouseEvent, chatId: string) => {
-    e.stopPropagation(); 
-    console.log("TODO: Delete chat", chatId);
-    alert(`UI ONLY: Deleting chat ${chatId}`);
-  };
+  const handleDeleteChat = useCallback(async (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation();
 
-  const handleMarkChat = (e: React.MouseEvent, chatId: string) => {
+    try {
+      // Delete messages first
+      const { error: messagesError } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('chat_id', chatId);
+
+      if (messagesError) {
+        console.error('Error deleting messages:', messagesError);
+        setToastMessages(['Failed to delete chat messages']);
+        return;
+      }
+
+      // Delete chat session
+      const { error: chatError } = await supabase
+        .from('chat_sessions')
+        .delete()
+        .eq('id', chatId);
+
+      if (chatError) {
+        console.error('Error deleting chat session:', chatError);
+        setToastMessages(['Failed to delete chat session']);
+        return;
+      }
+
+      // Update UI immediately
+      setActiveChats(prev => prev.filter(chat => chat.id !== chatId));
+
+      // Handle selected chat logic
+      if (selectedChat === chatId) {
+        const remainingChats = activeChats.filter(chat => chat.id !== chatId);
+        if (remainingChats.length > 0) {
+          setSelectedChat(remainingChats[0].id);
+        } else {
+          setSelectedChat('');
+        }
+      }
+
+      // Clear messages if the deleted chat was selected
+      if (selectedChat === chatId) {
+        setMessages([]);
+      }
+
+      // Show success message
+      setToastMessages(['Chat deleted successfully']);
+
+    } catch (err) {
+      console.error('Error deleting chat:', err);
+      setToastMessages(['Failed to delete chat']);
+    }
+  }, [selectedChat, activeChats]);
+
+  const handleMarkChat = useCallback((e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
     console.log("TODO: Mark chat", chatId);
     alert(`UI ONLY: Marking chat ${chatId}`);
-  };
+  }, []);
 
   useEffect(() => {
     const channel = supabase
@@ -123,10 +179,16 @@ export function AdminPanel() {
           filter: 'user_id=eq.admin',
         },
         (payload: any) => {
-          if (payload.new) {
-            setAdminOnline(payload.new.is_online || false);
-            setLastSeen(payload.new.last_seen || '');
+          // Debounce presence updates to prevent flickering (500ms)
+          if (presenceDebounceRef.current) {
+            clearTimeout(presenceDebounceRef.current);
           }
+          presenceDebounceRef.current = setTimeout(() => {
+            if (payload.new) {
+              setAdminOnline(payload.new.is_online || false);
+              setLastSeen(payload.new.last_seen || '');
+            }
+          }, 500);
         }
       )
       .subscribe();
@@ -225,31 +287,72 @@ export function AdminPanel() {
     };
   }, [selectedChat]);
 
-  // Scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  // Fetch messages for selected chat with optimization
+  const messagesData = useMemo(() => {
+    if (!selectedChat) return [];
+    return messages.filter(msg => msg.chat_id === selectedChat).sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+  }, [messages, selectedChat]);
 
-  // Fetch messages for selected chat
+  // Controlled scroll to bottom - only when new messages arrive and user is near bottom
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container || !selectedChat) return;
+
+    const currentMessageCount = messagesData.length;
+    const previousMessageCount = lastMessageCountRef.current;
+
+    // Only scroll if we have new messages
+    if (currentMessageCount > previousMessageCount) {
+      // Check if user is near the bottom (within 100px)
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+      if (isNearBottom || shouldScrollToBottomRef.current) {
+        // Use requestAnimationFrame for smooth scrolling
+        requestAnimationFrame(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        });
+      }
+    }
+
+    lastMessageCountRef.current = currentMessageCount;
+  }, [messagesData.length, selectedChat]);
+
+  // Track scroll position to determine if we should auto-scroll
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    shouldScrollToBottomRef.current = isNearBottom;
+  }, []);
+
   useEffect(() => {
     if (!selectedChat) {
       setMessages([]);
       return;
     }
+
+    let isMounted = true;
     const fetchMessages = async () => {
+      if (!isMounted) return;
       try {
         const { data, error } = await supabase
           .from('chat_messages')
           .select('*')
           .eq('chat_id', selectedChat)
           .order('created_at', { ascending: true });
-        if (!error && data) {
+        if (!error && data && isMounted) {
           setMessages(data);
         }
       } catch (err) {
-        console.error('Error fetching messages:', err);
+        if (isMounted) {
+          console.error('Error fetching messages:', err);
+        }
       }
     };
+
     const messagesChannel = supabase
       .channel(`admin_messages_${selectedChat}`)
       .on(
@@ -261,6 +364,7 @@ export function AdminPanel() {
           filter: `chat_id=eq.${selectedChat}`,
         },
         (payload: any) => {
+          if (!isMounted) return;
           const newMessage: Message = {
             id: payload.new.id,
             chat_id: payload.new.chat_id,
@@ -284,15 +388,19 @@ export function AdminPanel() {
           filter: `chat_id=eq.${selectedChat}`,
         },
         (payload: any) => {
+          if (!isMounted) return;
           setMessages((prev) =>
             prev.map((m) => (m.id === payload.new.id ? payload.new : m))
           );
         }
       )
       .subscribe();
+
     channelsRef.current.push(messagesChannel);
     fetchMessages();
+
     return () => {
+      isMounted = false;
       supabase.removeChannel(messagesChannel);
     };
   }, [selectedChat]);
@@ -314,32 +422,127 @@ export function AdminPanel() {
     markUserMessagesAsSeen();
   }, [selectedChat]);
 
-  // Fetch active chats
+  // Fetch active chats with debouncing and user presence
   useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    let isMounted = true;
+
     const fetchChats = async () => {
+      if (!isMounted) return;
       try {
         const { data, error } = await supabase
           .from('chat_sessions')
           .select('*')
           .order('last_seen', { ascending: false })
           .limit(10);
-        if (!error && data) {
-          setActiveChats(data);
-          if (!selectedChat && data.length > 0) {
-            setSelectedChat(data[0].id);
+        if (!error && data && isMounted) {
+          // Get user presence for each chat
+          const chatsWithPresence = await Promise.all(
+            data.map(async (chat) => {
+              try {
+                const { data: presenceData } = await supabase
+                  .from('user_presence')
+                  .select('is_online, last_seen')
+                  .eq('user_id', chat.guest_name)
+                  .single();
+                
+                return {
+                  ...chat,
+                  is_online: presenceData?.is_online || false,
+                  last_seen: presenceData?.last_seen || chat.last_seen
+                };
+              } catch {
+                return {
+                  ...chat,
+                  is_online: false,
+                  last_seen: chat.last_seen
+                };
+              }
+            })
+          );
+          
+          setActiveChats(chatsWithPresence);
+          if (!selectedChat && chatsWithPresence.length > 0) {
+            setSelectedChat(chatsWithPresence[0].id);
           }
         }
       } catch (e) {
-        console.error('fetchChats error:', e);
+        if (isMounted) {
+          console.error('fetchChats error:', e);
+        }
       }
     };
+
+    // Initial fetch
     fetchChats();
-    const interval = setInterval(fetchChats, 5000);
-    return () => clearInterval(interval);
+    
+    // Set up interval with longer delay to reduce API calls
+    intervalId = setInterval(fetchChats, 10000); // Increased from 5000 to 10000ms
+
+    return () => {
+      isMounted = false;
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [selectedChat]);
 
-  // Toggle presence
+  // Presence Heartbeat System - Update every 10 seconds when online
+  useEffect(() => {
+    if (!adminOnline) return;
+
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        const { error } = await supabase
+          .from('user_presence')
+          .update({
+            is_online: true,
+            last_seen: new Date().toISOString(),
+          })
+          .eq('user_id', 'admin');
+
+        if (error) {
+          console.error('Heartbeat update error:', error);
+        }
+      } catch (err) {
+        console.error('Heartbeat failed:', err);
+      }
+    }, 10000); // Update every 10 seconds
+
+    return () => clearInterval(heartbeatInterval);
+  }, [adminOnline]);
+
+  // Presence TTL Check - Mark offline after 15 seconds of inactivity
+  useEffect(() => {
+    const ttlCheckInterval = setInterval(async () => {
+      try {
+        // Check all user presences and mark offline if last_seen > 15 seconds ago
+        const fifteenSecondsAgo = new Date(Date.now() - 15000).toISOString();
+
+        const { error } = await supabase
+          .from('user_presence')
+          .update({ is_online: false })
+          .lt('last_seen', fifteenSecondsAgo)
+          .eq('is_online', true);
+
+        if (error) {
+          console.error('TTL check error:', error);
+        }
+      } catch (err) {
+        console.error('TTL check failed:', err);
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(ttlCheckInterval);
+  }, []);
+
+  // Toggle presence with debouncing
   const togglePresence = useCallback(async () => {
+    // Prevent rapid toggling (debounce 2 seconds)
+    const now = Date.now();
+    if (lastPresenceToggleRef.current && now - lastPresenceToggleRef.current < 2000) {
+      return;
+    }
+    lastPresenceToggleRef.current = now;
+
     try {
       const newStatus = !adminOnline;
       const { data: updateData, error: updateError } = await supabase
@@ -507,29 +710,67 @@ export function AdminPanel() {
     }
   }, [inputValue, selectedChat, handleAdminMessageSent]);
 
-  const formatLastSeen = (timestamp: string) => {
+  const formatLastSeen = useCallback((timestamp: string) => {
     if (!timestamp) return 'Never';
     const lastSeenDate = new Date(timestamp);
     const now = new Date();
     const diffSeconds = Math.floor((now.getTime() - lastSeenDate.getTime()) / 1000);
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    const diffHours = Math.floor(diffMinutes / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffSeconds < 60) return 'Online now';
-    if (diffMinutes < 60) return `Last seen ${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
-    if (diffHours < 24) return `Last seen ${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
-    if (diffDays < 7) return `Last seen ${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
-    return `Last seen on ${lastSeenDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}`;
-  };
+    
+    if (diffSeconds < 60) return 'just now';
+    if (diffSeconds < 3600) { // < 1 hour
+      const diffMinutes = Math.floor(diffSeconds / 60);
+      return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+    }
+    if (diffSeconds < 86400) { // < 24 hours
+      const diffHours = Math.floor(diffSeconds / 3600);
+      return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    }
+    
+    // > 24 hours - show full date
+    return lastSeenDate.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }, []);
+
+  const handleChatSelect = useCallback((chatId: string) => {
+    setSelectedChat(chatId);
+  }, []);
 
   const filteredActiveChats = useMemo(() => activeChats, [activeChats]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount - Enhanced memory management
   useEffect(() => {
+    const currentTypingTimeout = typingTimeoutRef.current;
+    const currentTypingDebounce = typingDebounceRef.current;
+    const currentPresenceDebounce = presenceDebounceRef.current;
+
     return () => {
+      // Clear all channels
       channelsRef.current.forEach(channel => {
-        supabase.removeChannel(channel);
+        try {
+          supabase.removeChannel(channel);
+        } catch (err) {
+          console.error('Error removing channel:', err);
+        }
       });
+      channelsRef.current = [];
+
+      // Clear all timeouts
+      if (currentTypingTimeout) {
+        clearTimeout(currentTypingTimeout);
+      }
+      if (currentTypingDebounce) {
+        clearTimeout(currentTypingDebounce);
+      }
+      if (currentPresenceDebounce) {
+        clearTimeout(currentPresenceDebounce);
+      }
+
+      // Set admin offline
       const setAdminOffline = async () => {
         try {
           const { data: updateData, error: updateError } = await supabase
@@ -605,13 +846,96 @@ export function AdminPanel() {
 
   const adminLocalTyping = inputValue.trim().length > 0;
 
+  const MemoizedChatItem = React.memo(function MemoizedChatItem({ 
+    chat, 
+    isSelected, 
+    onSelect, 
+    onMark, 
+    onDelete, 
+    formatLastSeen, 
+    isTyping 
+  }: { 
+    chat: any; 
+    isSelected: boolean; 
+    onSelect: (chatId: string) => void; 
+    onMark: (e: React.MouseEvent, chatId: string) => void; 
+    onDelete: (e: React.MouseEvent, chatId: string) => void; 
+    formatLastSeen: (timestamp: string) => string; 
+    isTyping: boolean; 
+  }) {
+    return (
+      <li
+        onClick={() => onSelect(chat.id)}
+        className={`relative group rounded-xl border px-4 py-3 cursor-pointer transition-all backdrop-blur ${isSelected ? 'border-[#00C4FF] bg-gradient-to-br from-[#1254FF]/10 to-[#00C4FF]/10' : 'border-white/10 bg-white/5 hover:border-[#00C4FF]/40'}`}
+      >
+        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={(e) => onMark(e, chat.id)}
+            className="p-1 rounded-md bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30"
+            title="Mark Chat"
+          >
+            <Star className="w-3 h-3" />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={(e) => onDelete(e, chat.id)}
+            className="p-1 rounded-md bg-red-500/20 text-red-300 hover:bg-red-500/30"
+            title="Delete Chat"
+          >
+            <Trash2 className="w-3 h-3" />
+          </motion.button>
+        </div>
+        
+        <div className="w-full">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-white/90 text-sm truncate max-w-[100px]">
+                {chat.guest_name.replace('guest_', 'User ')}
+              </span>
+              {chat.is_online ? (
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-[10px] text-green-400 font-medium">Online Now</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                  <span className="text-[10px] text-red-400">Offline</span>
+                </div>
+              )}
+            </div>
+            <span className="text-[10px] font-mono opacity-60 whitespace-nowrap">
+              {chat.last_seen ? formatLastSeen(chat.last_seen) : ''}
+            </span>
+          </div>
+          
+          {isTyping ? (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-xs truncate text-[#00C4FF] font-medium"
+            >
+              Typing...
+            </motion.p>
+          ) : (
+            <p className="text-xs truncate opacity-60">{chat.last_message?.slice(0, 40) || 'No message yet'}</p>
+          )}
+        </div>
+      </li>
+    );
+  });
+
   const MemoizedMessageBubble = React.memo(function MemoizedMessageBubble({ message }: { message: Message }) {
     return (
       <motion.div
         key={message.id}
-        initial={{ opacity: 0, y: 20, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.22, ease: "easeOut" }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
+        style={{ willChange: 'opacity' }}
         className={`flex ${message.sender === 'admin' ? 'justify-end' : 'justify-start'}`}
       >
         <div className={`flex items-start gap-2 max-w-[70%] ${message.sender === 'admin' ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -625,32 +949,137 @@ export function AdminPanel() {
             : 'bg-gray-700 text-white border border-gray-600 rounded-bl-md'
             }`}>
             <p className="text-sm leading-relaxed">{message.message}</p>
-            <p className={`text-xs opacity-80 mt-2 flex items-center gap-2 ${message.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
-              <span>
+            <div className={`flex items-center justify-between mt-2 ${message.sender === 'admin' ? 'flex-row-reverse' : 'flex-row'}`}>
+              <span className="text-xs opacity-70">
                 {new Date(message.created_at).toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit'
                 })}
               </span>
-              <span className="flex items-center gap-1 select-none">
-                {message.status === 'seen' ? (
-                  <>
-                    <svg width="15" height="15" fill="none" viewBox="0 0 16 16">
-                      <path d="M3.5 8.25l3.5 3.25 5.5-7.25" stroke="#49ff8c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M6.5 10.25l2.5 2.25 5.5-7.25" stroke="#49ff8c" strokeWidth="1.44" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <span className="text-[#49ff8c] font-bold">Seen</span>
-                  </>
-                ) : (
-                  <>
-                    <svg width="15" height="15" fill="none" viewBox="0 0 16 16">
-                      <path d="M3.5 8.25l3.5 3.25 5.5-7.25" stroke="#ccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <span className="text-[#ddd]">Sent</span>
-                  </>
-                )}
-              </span>
-            </p>
+              {message.sender === 'user' && (
+                <div className="flex items-center gap-1">
+                  {message.status === 'seen' ? (
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.5 }}
+                      className="flex items-center gap-0.5"
+                    >
+                      {/* Glowing Double Tick Hologram */}
+                      <motion.div
+                        animate={{
+                          scale: [1, 1.2, 1],
+                          opacity: [0.8, 1, 0.8]
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                        className="relative"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" className="text-[#00C4FF] drop-shadow-[0_0_10px_#00C4FF]">
+                          <motion.path
+                            d="M3.5 8.25l3.5 3.25 5.5-7.25"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                          />
+                        </svg>
+                        <motion.div
+                          animate={{
+                            scale: [1, 1.5, 1],
+                            opacity: [0.3, 0.8, 0.3]
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: 0.5
+                          }}
+                          className="absolute inset-0 bg-[#00C4FF] rounded-full blur-sm"
+                        />
+                      </motion.div>
+                      <motion.div
+                        animate={{
+                          scale: [1, 1.2, 1],
+                          opacity: [0.8, 1, 0.8]
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                          delay: 0.3
+                        }}
+                        className="relative"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" className="text-[#00C4FF] drop-shadow-[0_0_8px_#00C4FF]">
+                          <motion.path
+                            d="M6.5 10.25l2.5 2.25 5.5-7.25"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+                          />
+                        </svg>
+                        <motion.div
+                          animate={{
+                            scale: [1, 1.5, 1],
+                            opacity: [0.3, 0.8, 0.3]
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: 0.8
+                          }}
+                          className="absolute inset-0 bg-[#00C4FF] rounded-full blur-sm"
+                        />
+                      </motion.div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      animate={{
+                        scale: [1, 1.1, 1],
+                        opacity: [0.8, 1, 0.8]
+                      }}
+                      transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                      className="relative flex items-center justify-center"
+                      title="Message Sent"
+                    >
+                      <span className="text-lg">✈️</span>
+                      <motion.div
+                        animate={{
+                          scale: [1, 1.3, 1],
+                          opacity: [0.6, 1, 0.6]
+                        }}
+                        transition={{
+                          duration: 1,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                        className="absolute inset-0 bg-gradient-to-r from-[#00C4FF] to-[#1254FF] rounded-full blur-md"
+                        style={{
+                          filter: 'blur(4px)',
+                          transform: 'scale(0.8)'
+                        }}
+                      />
+                    </motion.div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
@@ -667,6 +1096,7 @@ export function AdminPanel() {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, type: 'spring' }}
+          style={{ willChange: 'transform, opacity' }}
           className="backdrop-blur-2xl rounded-3xl overflow-hidden max-w-full mx-auto p-0 border border-white/10 shadow-[0_0_30px_rgba(0,196,255,0.12)]"
         >
           <div className="bg-gradient-to-r from-[#1254FF] via-[#00C4FF] to-[#1254FF] p-6 md:p-8 text-white shadow-lg border-b border-[#00C4FF]/30 relative">
@@ -726,57 +1156,28 @@ export function AdminPanel() {
               <div className="p-6 rounded-2xl backdrop-blur-xl bg-[#0F172A]/70 border border-white/10 shadow-[0_0_30px_rgba(0,196,255,0.12)]">
                 <h2 className="text-lg font-semibold mb-4 text-white/90">Active Chats</h2>
                 <ul className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
-                  {filteredActiveChats.map((chat) => (
-                    <li
-                      key={chat.id}
-                      onClick={() => setSelectedChat(chat.id)}
-                      className={`relative group rounded-xl border px-4 py-3 cursor-pointer transition-all backdrop-blur ${selectedChat === chat.id ? 'border-[#00C4FF] bg-gradient-to-br from-[#1254FF]/10 to-[#00C4FF]/10' : 'border-white/10 bg-white/5 hover:border-[#00C4FF]/40'}`}
-                    >
-                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={(e) => handleMarkChat(e, chat.id)}
-                          className="p-1 rounded-md bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30"
-                          title="Mark Chat"
-                        >
-                          <Star className="w-3 h-3" />
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={(e) => handleDeleteChat(e, chat.id)}
-                          className="p-1 rounded-md bg-red-500/20 text-red-300 hover:bg-red-500/30"
-                          title="Delete Chat"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </motion.button>
-                      </div>
-                      
-                      <div className="w-full">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-white/90 text-sm truncate max-w-[120px]">
-                            {chat.guest_name.replace('guest_', 'User ')}
-                          </span>
-                          <span className="text-[10px] font-mono opacity-60 whitespace-nowrap">
-                            {chat.last_seen ? formatLastSeen(chat.last_seen) : ''}
-                          </span>
-                        </div>
-                        
-                        {typingStates[chat.id] ? (
-                          <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="text-xs truncate text-[#00C4FF] font-medium"
-                          >
-                            Typing...
-                          </motion.p>
-                        ) : (
-                          <p className="text-xs truncate opacity-60">{chat.last_message?.slice(0, 40) || 'No message yet'}</p>
-                        )}
-                      </div>
-                    </li>
-                  ))}
+                  <AnimatePresence>
+                    {filteredActiveChats.map((chat) => (
+                      <motion.div
+                        key={chat.id}
+                        initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                        animate={{ opacity: 1, height: 'auto', marginBottom: 8 }}
+                        exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        style={{ willChange: 'opacity, height, margin' }}
+                      >
+                        <MemoizedChatItem
+                          chat={chat}
+                          isSelected={selectedChat === chat.id}
+                          onSelect={handleChatSelect}
+                          onMark={handleMarkChat}
+                          onDelete={handleDeleteChat}
+                          formatLastSeen={formatLastSeen}
+                          isTyping={typingStates[chat.id]}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                   {filteredActiveChats.length === 0 && (
                     <li className="text-sm text-white/50 border border-white/10 rounded-xl px-4 py-6 text-center">No active chats</li>
                   )}
@@ -795,14 +1196,24 @@ export function AdminPanel() {
                           {selectedChat ? `Chat with ${activeChats.find(c => c.id === selectedChat)?.guest_name || 'User'}` : 'Select a Chat'}
                         </h2>
                         {selectedChat && (
-                          <p className="text-sm text-white/60">{messages.length} messages</p>
+                          <p className="text-sm text-white/60">{messagesData.length} messages</p>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                <div 
+                  ref={messagesContainerRef}
+                  onScroll={handleScroll}
+                  className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth"
+                  style={{ 
+                    scrollBehavior: 'smooth',
+                    height: 'calc(100vh - 400px)',
+                    minHeight: '400px',
+                    maxHeight: 'calc(100vh - 300px)'
+                  }}
+                >
                   {!selectedChat ? (
                     <div className="flex items-center justify-center h-full text-center text-white/50">
                       <div>
@@ -820,7 +1231,7 @@ export function AdminPanel() {
                       </div>
                     </div>
                   ) : (
-                    messages.map((message) => (
+                    messagesData.map((message) => (
                       <MemoizedMessageBubble message={message} key={message.id} />
                     ))
                   )}
@@ -862,17 +1273,20 @@ export function AdminPanel() {
                                 <span className="inline-flex gap-1">
                                   <motion.span
                                     animate={{ y: [0, -2, 0], opacity: [0.5, 1, 0.5] }}
-                                    transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                                    transition={{ duration: 0.6, repeat: Infinity, delay: 0, ease: "easeInOut" }}
+                                    style={{ willChange: 'transform, opacity' }}
                                     className="inline-block w-1.5 h-1.5 bg-white rounded-full"
                                   />
                                   <motion.span
                                     animate={{ y: [0, -2, 0], opacity: [0.5, 1, 0.5] }}
-                                    transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+                                    transition={{ duration: 0.6, repeat: Infinity, delay: 0.2, ease: "easeInOut" }}
+                                    style={{ willChange: 'transform, opacity' }}
                                     className="inline-block w-1.5 h-1.5 bg-white rounded-full"
                                   />
                                   <motion.span
                                     animate={{ y: [0, -2, 0], opacity: [0.5, 1, 0.5] }}
-                                    transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+                                    transition={{ duration: 0.6, repeat: Infinity, delay: 0.4, ease: "easeInOut" }}
+                                    style={{ willChange: 'transform, opacity' }}
                                     className="inline-block w-1.5 h-1.5 bg-white rounded-full"
                                   />
                                 </span>
@@ -899,29 +1313,7 @@ export function AdminPanel() {
             </div>
           </div>
         </motion.div>
-        <style>{`
-          .glassy-card { backdrop-filter: blur(14px) saturate(145%); background-blend-mode: overlay; }
-          .glassy-gradient { background: linear-gradient(127deg, #00c4ff33, #1254ff0f 75%); }
-          .glass-blur-sm { backdrop-filter: blur(6px); }
-          .animate-pop { animation: pop-card 0.7s cubic-bezier(.38,1.15,.57,.91); }
-          .animate-slide-right{ animation:slideInRight 1.2s cubic-bezier(.11,.77,.35,1.2); }
-          .animate-soft-glow{animation: softGlow 2.2s ease-in-out infinite alternate;}
-          .banana { letter-spacing: 0.025em; font-variation-settings: 'wght' 655, 'slnt' 0; }
-          @keyframes pop-card{from{transform:scale(.7);} to{transform:scale(1);} }
-          @keyframes softGlow{ 0%,100%{filter:drop-shadow(0 0 12px #00fff6cc);} 60%{filter:drop-shadow(0 0 22px #1254ff88);} }
-          @keyframes slideInRight{from{transform:translateX(-90px); opacity:0.5;} to{transform:translateX(0); opacity:1;} }
-          @keyframes blinkRed { 
-            0%, 100% { 
-              opacity: 1; 
-              box-shadow: 0 0 15px 5px rgba(255, 34, 34, 0.6); 
-            } 
-            50% { 
-              opacity: 0.8; 
-              box-shadow: 0 0 25px 8px rgba(255, 10, 10, 0.8); 
-            }
-          }
-          .animate-blink-red { animation: blinkRed 1.5s infinite cubic-bezier(.4, 0, .6, 1); }
-        `}</style>
+        <Toast messages={toastMessages} onClear={() => setToastMessages([])} />
       </div>
     </div>
   );

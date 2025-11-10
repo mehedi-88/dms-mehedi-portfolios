@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const { tool, input } = await req.json();
+    const body = await req.json();
+    const { tool, input } = body;
 
     if (!tool || !input) {
       return NextResponse.json({ error: 'Missing tool or input' }, { status: 400 });
@@ -39,6 +40,11 @@ export async function POST(req: NextRequest) {
       case 'translator':
         // Translator
         result = await handleTranslator(input, model);
+        break;
+
+      case 'chat':
+        // AI Chat Assistant
+        result = await handleChatAssistant(input, model, body);
         break;
 
       case 'project-assistant':
@@ -188,5 +194,48 @@ Reply in a friendly, professional tone, under 150 words.`;
   });
 
   return completion.choices[0]?.message?.content?.trim() || 'Sorry, I could not generate a response.';
+}
+
+async function handleChatAssistant(input: string, model: string, body: any): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('API key missing');
+
+  const mode = body.mode || 'thinking';
+  const history = body.history || [];
+
+  const moodPrompts: Record<string, string> = {
+    thinking: 'You are a deep reflective AI who reasons carefully before answering. Take your time to provide thoughtful responses.',
+    agent: 'You are a helpful and fast digital assistant who gives concise, actionable answers. Be quick and efficient.',
+    research: 'You are an analytical AI researcher who provides detailed factual responses with proper citations.',
+    auto: 'You are an adaptive AI who balances reasoning and quick insight automatically. Be versatile.'
+  };
+
+  const openai = new OpenAI({ apiKey });
+
+  // Build conversation context from history
+  const conversationHistory = history.slice(-3).map((msg: any) => ({
+    role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+    content: msg.content
+  }));
+
+  // Add system prompt for the AI assistant
+  const systemPrompt = `You are DMS AI, a helpful AI assistant for DMS Mehedi, a digital marketing strategist and web developer.
+You help customers with inquiries about digital marketing, SEO, web development, Shopify dropshipping, and related services.
+${moodPrompts[mode] || moodPrompts.thinking}
+Be professional, friendly, and concise. If you don't know something specific, suggest they reach out to the admin directly.
+Keep responses under 150 words.`;
+
+  const response = await openai.chat.completions.create({
+    model: model,
+    messages: [
+      { role: 'system', content: systemPrompt as string },
+      ...conversationHistory,
+      { role: 'user', content: input.trim() }
+    ],
+    max_tokens: 200,
+    temperature: 0.7,
+  });
+
+  return response.choices[0].message.content || "I'm here to help! Please provide more details about your inquiry.";
 }
 

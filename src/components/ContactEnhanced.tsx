@@ -93,7 +93,7 @@ export function ContactEnhanced() {
           variants={itemVariants}
           className="text-base sm:text-lg md:text-xl text-center text-[#8D8D8D] mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed"
         >
-          Have a project in mind? Let's collaborate and create something amazing together.
+          Have a project in mind? Let&apos;s collaborate and create something amazing together.
         </motion.p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">

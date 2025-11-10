@@ -68,9 +68,9 @@ export function About() {
           </motion.div>
           <motion.div variants={itemVariants} className="glass rounded-xl p-8 order-2 md:order-1">
             <p className="body-text text-[#8D8D8D] mb-6">
-              I'm a futuristic-minded developer and digital strategist with a passion for
+              I&apos;m a futuristic-minded developer and digital strategist with a passion for
               creating cutting-edge web experiences. With expertise in Next.js, Firebase, and
-              AI integration, I build scalable solutions that push the boundaries of what's
+              AI integration, I build scalable solutions that push the boundaries of what&apos;s
               possible on the web.
             </p>
             <p className="body-text text-[#8D8D8D] mb-6">
@@ -79,7 +79,7 @@ export function About() {
               experiences.
             </p>
             <p className="body-text text-[#8D8D8D]">
-              When I'm not coding, you'll find me exploring new technologies, creating content,
+              When I&apos;m not coding, you&apos;ll find me exploring new technologies, creating content,
               or strategizing the next big digital transformation.
             </p>
           </motion.div>

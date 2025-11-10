@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
+import { Sparkles } from 'lucide-react';
 // Note: This component assumes you have a 'TypingIndicator' component imported
 // Since it wasn't provided, I've re-created the animation logic inside this file
 // in the JSX for "adminTyping".
@@ -35,6 +36,8 @@ export function ChatbotWidgetSupabase() {
   const lastMessageCountRef = useRef(0);
   const [aiThinking, setAiThinking] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [timeUpdate, setTimeUpdate] = useState(0);
+  const presenceDebounceRef = useRef<NodeJS.Timeout | null>(null);
   
   // *** দ্রষ্টব্য: আমি 'isMobile' স্টেটটি সরিয়ে দিয়েছি কারণ এটি আর প্রয়োজন নেই ***
   // const [isMobile, setIsMobile] = useState(false);
@@ -185,10 +188,16 @@ export function ChatbotWidgetSupabase() {
             filter: 'user_id=eq.admin',
           },
           (payload: any) => {
-            if (payload.new) {
-              setAdminOnline(payload.new.is_online || false);
-              setLastSeen(payload.new.last_seen || '');
+            // Debounce presence updates to prevent flickering (500ms)
+            if (presenceDebounceRef.current) {
+              clearTimeout(presenceDebounceRef.current);
             }
+            presenceDebounceRef.current = setTimeout(() => {
+              if (payload.new) {
+                setAdminOnline(payload.new.is_online || false);
+                setLastSeen(payload.new.last_seen || '');
+              }
+            }, 500);
           }
         )
         .subscribe();
@@ -201,6 +210,55 @@ export function ChatbotWidgetSupabase() {
       };
     };
     initializeChat();
+  }, []);
+
+  // Presence Heartbeat System - Update every 10 seconds when online
+  useEffect(() => {
+    if (!chatId || !guestName) return;
+
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        const { error } = await supabase
+          .from('user_presence')
+          .upsert({
+            user_id: guestName,
+            is_online: true,
+            last_seen: new Date().toISOString(),
+          }, { onConflict: 'user_id' });
+
+        if (error) {
+          console.error('Widget heartbeat update error:', error);
+        }
+      } catch (err) {
+        console.error('Widget heartbeat failed:', err);
+      }
+    }, 10000); // Update every 10 seconds
+
+    return () => clearInterval(heartbeatInterval);
+  }, [chatId, guestName]);
+
+  // Presence TTL Check - Mark offline after 15 seconds of inactivity
+  useEffect(() => {
+    const ttlCheckInterval = setInterval(async () => {
+      try {
+        // Check all user presences and mark offline if last_seen > 15 seconds ago
+        const fifteenSecondsAgo = new Date(Date.now() - 15000).toISOString();
+
+        const { error } = await supabase
+          .from('user_presence')
+          .update({ is_online: false })
+          .lt('last_seen', fifteenSecondsAgo)
+          .eq('is_online', true);
+
+        if (error) {
+          console.error('Widget TTL check error:', error);
+        }
+      } catch (err) {
+        console.error('Widget TTL check failed:', err);
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(ttlCheckInterval);
   }, []);
 
   // Fetch Initial Messages
@@ -338,30 +396,33 @@ export function ChatbotWidgetSupabase() {
     };
   }, [chatId, guestName]);
 
-  // Real-time subscription for "Seen" status
+  // Real-time subscription for "Seen" status - FIXED: Only mark as seen when admin opens chat
   useEffect(() => {
     if (!chatId) return;
-    const adminMsgChannel = supabase
-      .channel(`admin_seen_${chatId}`)
+    const adminPresenceChannel = supabase
+      .channel(`admin_presence_${chatId}`)
       .on('postgres_changes', {
-        event: 'INSERT',
+        event: 'UPDATE',
         schema: 'public',
-        table: 'chat_messages',
-        filter: `chat_id=eq.${chatId} AND sender=eq.admin`
-      }, async () => {
-        try {
-          await supabase.from('chat_messages')
-            .update({ status: 'seen' })
-            .eq('chat_id', chatId)
-            .eq('sender', 'user')
-            .eq('status', 'sent');
-        } catch (error) {
-          console.error('Error marking messages as seen:', error);
+        table: 'user_presence',
+        filter: 'user_id=eq.admin'
+      }, async (payload: any) => {
+        // Only mark messages as seen if admin is online (indicating they opened the chat)
+        if (payload.new?.is_online === true) {
+          try {
+            await supabase.from('chat_messages')
+              .update({ status: 'seen' })
+              .eq('chat_id', chatId)
+              .eq('sender', 'user')
+              .eq('status', 'sent');
+          } catch (error) {
+            console.error('Error marking messages as seen:', error);
+          }
         }
       })
       .subscribe();
-    channelsRef.current.push(adminMsgChannel);
-    return () => void supabase.removeChannel(adminMsgChannel);
+    channelsRef.current.push(adminPresenceChannel);
+    return () => void supabase.removeChannel(adminPresenceChannel);
   }, [chatId]);
 
   // Handle Send Message
@@ -435,21 +496,43 @@ export function ChatbotWidgetSupabase() {
     }
   };
 
-  // Format Last Seen
-  const formatLastSeen = () => {
+  // Format Last Seen with Intl.RelativeTimeFormat
+  const formatLastSeen = useCallback(() => {
     if (!lastSeen) return 'Never';
+    
     const lastSeenDate = new Date(lastSeen);
     const now = new Date();
-    const diffSeconds = Math.floor((now.getTime() - lastSeenDate.getTime()) / 1000);
+    const diffMs = now.getTime() - lastSeenDate.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
     const diffMinutes = Math.floor(diffSeconds / 60);
     const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
-    if (diffSeconds < 60) return 'Online now';
-    if (diffMinutes < 60) return `Last seen ${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
-    if (diffHours < 24) return `Last seen ${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
-    if (diffDays < 7) return `Last seen ${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
-    return `Last seen on ${lastSeenDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}`;
-  };
+
+    // Use Intl.RelativeTimeFormat for better formatting
+    const rtf = new Intl.RelativeTimeFormat('en', { 
+      numeric: 'auto',
+      style: 'long' 
+    });
+
+    if (diffSeconds < 60) {
+      return 'just now';
+    } else if (diffMinutes < 60) {
+      return rtf.format(-diffMinutes, 'minute');
+    } else if (diffHours < 24) {
+      return rtf.format(-diffHours, 'hour');
+    } else if (diffDays < 7) {
+      return rtf.format(-diffDays, 'day');
+    } else {
+      return lastSeenDate.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    }
+  }, [lastSeen]);
 
   // Keep-alive pings
   useEffect(() => {
@@ -485,15 +568,22 @@ export function ChatbotWidgetSupabase() {
 
   // Cleanup on unmount
   useEffect(() => {
+    const currentScrollTimeout = scrollTimeoutRef.current;
+    const currentTypingDebounce = typingDebounceRef.current;
+    const currentPresenceDebounce = presenceDebounceRef.current;
+
     return () => {
       channelsRef.current.forEach(channel => {
         supabase.removeChannel(channel);
       });
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
+      if (currentScrollTimeout) {
+        clearTimeout(currentScrollTimeout);
       }
-      if (typingDebounceRef.current) {
-        clearTimeout(typingDebounceRef.current);
+      if (currentTypingDebounce) {
+        clearTimeout(currentTypingDebounce);
+      }
+      if (currentPresenceDebounce) {
+        clearTimeout(currentPresenceDebounce);
       }
     };
   }, []);
@@ -505,6 +595,40 @@ export function ChatbotWidgetSupabase() {
       return () => clearTimeout(timeout);
     }
   }, [showWelcome]);
+
+  // Live time updates every 60 seconds
+  useEffect(() => {
+    const timeUpdateInterval = setInterval(() => {
+      setTimeUpdate(prev => prev + 1);
+    }, 60000); // Update every 60 seconds
+
+    return () => clearInterval(timeUpdateInterval);
+  }, []);
+
+  // Browser tab close detection - mark user offline instantly
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      if (guestName) {
+        try {
+          await supabase
+            .from('user_presence')
+            .update({
+              is_online: false,
+              last_seen: new Date().toISOString(),
+            })
+            .eq('user_id', guestName);
+        } catch (error) {
+          console.error('Error marking user offline on tab close:', error);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [guestName]);
 
   return (
     <>
@@ -619,8 +743,56 @@ export function ChatbotWidgetSupabase() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3 }}
-            className="fixed bottom-24 right-6 z-40 w-[calc(100vw-2rem)] sm:w-96 h-[500px] max-h-[calc(100vh-6rem)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[#1254FF]/30 bg-gradient-to-b from-gray-900 to-black backdrop-blur-xl dark:from-gray-900 dark:to-black"
+            className="fixed bottom-24 right-6 z-40 w-[calc(100vw-2rem)] sm:w-96 h-[500px] max-h-[calc(100vh-6rem)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border-2 border-[#00C4FF]/30 bg-black backdrop-blur-xl"
+            style={{
+              background: `
+                radial-gradient(circle at 20% 20%, rgba(0, 196, 255, 0.05) 0%, transparent 35%),
+                radial-gradient(circle at 80% 0%, rgba(18, 94, 255, 0.03) 0%, transparent 30%),
+                linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.98) 100%)
+              `,
+              boxShadow: `
+                0 0 60px rgba(0, 196, 255, 0.1),
+                inset 0 0 60px rgba(0, 196, 255, 0.02)
+              `
+            }}
           >
+            {/* Spider-web background animation */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+              <svg width="100%" height="100%" className="absolute inset-0 opacity-10">
+                <defs>
+                  <pattern id="spiderWeb" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <motion.path
+                      d="M20 0 L20 40 M0 20 L40 20 M5.86 5.86 L34.14 34.14 M34.14 5.86 L5.86 34.14 M10 10 L30 30 M30 10 L10 30"
+                      stroke="url(#webGradient)"
+                      strokeWidth="0.5"
+                      fill="none"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                  </pattern>
+                  <linearGradient id="webGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#00C4FF" stopOpacity="0.3" />
+                    <stop offset="50%" stopColor="#1254FF" stopOpacity="0.2" />
+                    <stop offset="100%" stopColor="#00C4FF" stopOpacity="0.3" />
+                  </linearGradient>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#spiderWeb)" />
+              </svg>
+              
+              {/* Animated grid overlay */}
+              <motion.div
+                className="absolute inset-0"
+                animate={{
+                  background: [
+                    'radial-gradient(circle at 20% 20%, rgba(0, 196, 255, 0.02) 0%, transparent 50%)',
+                    'radial-gradient(circle at 80% 80%, rgba(0, 196, 255, 0.02) 0%, transparent 50%)',
+                    'radial-gradient(circle at 20% 20%, rgba(0, 196, 255, 0.02) 0%, transparent 50%)'
+                  ]
+                }}
+                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </div>
             {/* Enhanced Header */}
             <div className="bg-gradient-to-r from-[#1254FF] via-[#00C4FF] to-[#1254FF] p-5 text-white shadow-lg">
               <div className="flex justify-between items-center mb-2">
@@ -632,15 +804,24 @@ export function ChatbotWidgetSupabase() {
                     <h3 className="font-bold text-lg">DMS Support</h3>
                     <p className="text-xs opacity-90 font-medium">
                       {adminOnline ? (
-                        <span className="flex items-center gap-1">
-                          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                          Admin is online now
-                        </span>
+                        <motion.span 
+                          className="flex items-center gap-1 text-[#00FF99] font-bold"
+                          animate={{ 
+                            textShadow: [
+                              '0 0 5px #00FF99, 0 0 10px #00FF99, 0 0 15px #00FF99',
+                              '0 0 10px #00FF99, 0 0 20px #00FF99, 0 0 30px #00FF99',
+                              '0 0 5px #00FF99, 0 0 10px #00FF99, 0 0 15px #00FF99'
+                            ]
+                          }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                        >
+                          🟢 Online Now
+                        </motion.span>
                       ) : (
                         <span className="flex items-center gap-2">
-                          <span className="w-2 h-2 bg-red-400 rounded-full animate-blink-red"></span>
-                          <span className="font-bold text-red-400">DMS Assistant (Offline)</span>
-                          <span className="opacity-80">· {formatLastSeen()}</span>
+                          <span className="w-2 h-2 bg-[#FF4B4B] rounded-full"></span>
+                          <span className="text-[#FF4B4B] font-bold">Offline</span>
+                          <span className="text-gray-400">· Last seen {formatLastSeen()}</span>
                         </span>
                       )}
                     </p>
@@ -657,10 +838,12 @@ export function ChatbotWidgetSupabase() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 relative z-10">
               {messages.length === 0 && (
                 <div className="text-center text-[#8D8D8D] py-8">
-                  <p>Start a conversation…</p>
+                  <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg mb-2">Start a conversation…</p>
+                  <p className="text-sm">Ask DMS AI anything!</p>
                 </div>
               )}
               {messages.map((message) => (
@@ -675,37 +858,169 @@ export function ChatbotWidgetSupabase() {
                   {message.sender === 'admin' && (
                     <span className="mr-2 flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[#1254ff] to-[#0ed6a7] flex items-center justify-center shadow-lg border-2 border-white select-none" style={{ fontFamily: 'Orbitron', fontWeight: 'bold', fontSize: '1.11rem', color: '#fff' }}>A</span>
                   )}
+                  
+                  {/* Glassmorphism chat bubble with neon borders */}
                   <div
-                    className={`relative px-4 pt-3 pb-4 rounded-3xl text-white break-words select-text shadow-lg border-2 ${message.sender === 'user' ? 'from-[#1d2859]/70 via-[#05ffe0]/40 to-[#0b6e88]/80 bg-gradient-to-br ml-auto text-right border-[#00d1b3]/30' : 'from-[#192040]/90 via-[#32e2ff]/27 to-[#2851cc]/60 bg-gradient-to-bl mr-0 text-left border-[#4ea3ff]/28'} w-fit max-w-[81vw] sm:max-w-[62%]`}
-                    style={{ filter: 'drop-shadow(0 0 14px #00e2db21)', fontFamily: 'Inter,Roboto,Arial,sans-serif', marginLeft: message.sender === 'admin' ? '0.2rem' : 0 }}
+                    className={`relative px-4 pt-3 pb-4 rounded-3xl text-white break-words select-text shadow-2xl border-2 w-fit max-w-[81vw] sm:max-w-[62%] backdrop-blur-xl ${
+                      message.sender === 'user' 
+                        ? 'from-[#1d2859]/80 via-[#05ffe0]/30 to-[#0b6e88]/70 bg-gradient-to-br ml-auto text-right border-[#00d1b3]/60 shadow-[0_0_30px_rgba(0,209,179,0.2)]' 
+                        : 'from-[#192040]/80 via-[#32e2ff]/25 to-[#2851cc]/60 bg-gradient-to-bl mr-0 text-left border-[#4ea3ff]/60 shadow-[0_0_30px_rgba(78,163,255,0.2)]'
+                    }`}
+                    style={{ 
+                      filter: 'drop-shadow(0 0 20px rgba(0, 196, 255, 0.1))',
+                      fontFamily: 'Inter,Roboto,Arial,sans-serif',
+                      marginLeft: message.sender === 'admin' ? '0.2rem' : 0
+                    }}
                   >
-                    <span className="block font-semibold text-xs opacity-75 mb-1 select-none tracking-wide" style={{ fontFamily: 'Orbitron,Arial,sans-serif' }}>
-                      {message.sender === 'user' ? '' : 'Admin'}
+                    {/* Animated glowing edges for AI messages */}
+                    {message.sender === 'admin' && (
+                      <motion.div
+                        className="absolute inset-0 rounded-3xl pointer-events-none"
+                        animate={{
+                          boxShadow: [
+                            'inset 0 0 20px rgba(0, 196, 255, 0.1), 0 0 20px rgba(0, 196, 255, 0.05)',
+                            'inset 0 0 30px rgba(0, 196, 255, 0.2), 0 0 30px rgba(0, 196, 255, 0.1)',
+                            'inset 0 0 20px rgba(0, 196, 255, 0.1), 0 0 20px rgba(0, 196, 255, 0.05)'
+                          ]
+                        }}
+                        transition={{
+                          duration: 3,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      />
+                    )}
+                    
+                    <span className="block font-semibold text-xs opacity-75 mb-1 select-none tracking-wide relative z-10" style={{ fontFamily: 'Orbitron,Arial,sans-serif' }}>
+                      {message.sender === 'user' ? '' : 'DMS AI'}
                     </span>
                     <div className="relative z-10"><span className="text-[1.08rem] leading-snug whitespace-pre-line" style={{ wordBreak: 'break-word' }}>{message.message}</span></div>
                     
-                    {/* --- START: SEEN STATUS FIX --- */}
+                    {/* --- START: FUTURISTIC HOLOGRAPHIC MESSAGE STATUS --- */}
                     {message.sender === 'user' && (
-                      <span className={`flex items-center justify-end gap-1 w-full mt-2 text-[11px] font-semibold select-none ${message.status === 'seen' ? 'text-[#49ff8c]' : 'text-white/60'}`} style={{ fontFamily: 'Orbitron,Arial,sans-serif' }}>
+                      <div className={`flex items-center justify-end gap-1 w-full mt-2 text-[11px] font-semibold select-none relative z-10 ${message.status === 'seen' ? 'text-[#00C4FF]' : 'text-white/60'}`} style={{ fontFamily: 'Orbitron,Arial,sans-serif' }}>
                         {message.status === 'seen' ? (
-                          <>
-                            <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className="inline -mt-0.5" style={{ verticalAlign: 'middle' }}>
-                              <path d="M2.5 6.5l3.5 3.0 5.5-7.0" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
-                              <path d="M7.5 9.5l2.5 2 5.5-7.0" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            <span className="ml-1 font-bold">Seen</span>
-                          </>
+                          <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ duration: 0.5 }}
+                            className="flex items-center gap-0.5"
+                          >
+                            {/* Glowing Double Tick Hologram */}
+                            <motion.div
+                              animate={{
+                                scale: [1, 1.2, 1],
+                                opacity: [0.8, 1, 0.8]
+                              }}
+                              transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                              }}
+                              className="relative"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 16 16" className="text-[#00C4FF] drop-shadow-[0_0_10px_#00C4FF]">
+                                <motion.path
+                                  d="M3.5 8.25l3.5 3.25 5.5-7.25"
+                                  stroke="currentColor"
+                                  strokeWidth="2.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  initial={{ pathLength: 0 }}
+                                  animate={{ pathLength: 1 }}
+                                  transition={{ duration: 0.8, ease: "easeOut" }}
+                                />
+                              </svg>
+                              <motion.div
+                                animate={{
+                                  scale: [1, 1.8, 1],
+                                  opacity: [0.2, 0.6, 0.2]
+                                }}
+                                transition={{
+                                  duration: 2,
+                                  repeat: Infinity,
+                                  ease: "easeInOut",
+                                  delay: 0.5
+                                }}
+                                className="absolute inset-0 bg-[#00C4FF] rounded-full blur-md"
+                              />
+                            </motion.div>
+                            <motion.div
+                              animate={{
+                                scale: [1, 1.2, 1],
+                                opacity: [0.8, 1, 0.8]
+                              }}
+                              transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                                delay: 0.3
+                              }}
+                              className="relative"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 16 16" className="text-[#00C4FF] drop-shadow-[0_0_10px_#00C4FF]">
+                                <motion.path
+                                  d="M6.5 10.25l2.5 2.25 5.5-7.25"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  initial={{ pathLength: 0 }}
+                                  animate={{ pathLength: 1 }}
+                                  transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+                                />
+                              </svg>
+                              <motion.div
+                                animate={{
+                                  scale: [1, 1.8, 1],
+                                  opacity: [0.2, 0.6, 0.2]
+                                }}
+                                transition={{
+                                  duration: 2,
+                                  repeat: Infinity,
+                                  ease: "easeInOut",
+                                  delay: 0.8
+                                }}
+                                className="absolute inset-0 bg-[#00C4FF] rounded-full blur-md"
+                              />
+                            </motion.div>
+                          </motion.div>
                         ) : (
-                          <>
-                            <svg width="15" height="15" fill="none" viewBox="0 0 16 16" className="inline -mt-0.5" style={{ verticalAlign: 'middle' }}>
-                              <path d="M3.5 8.25l3.5 3.25 5.5-7.25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            <span className="ml-1">Sent</span>
-                          </>
+                          <motion.div
+                            animate={{
+                              scale: [1, 1.1, 1],
+                              opacity: [0.8, 1, 0.8]
+                            }}
+                            transition={{
+                              duration: 1,
+                              repeat: Infinity,
+                              ease: "easeInOut"
+                            }}
+                            className="relative flex items-center justify-center"
+                            title="Message Sent"
+                          >
+                            <span className="text-lg">✈️</span>
+                            <motion.div
+                              animate={{
+                                scale: [1, 1.3, 1],
+                                opacity: [0.6, 1, 0.6]
+                              }}
+                              transition={{
+                                duration: 1,
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                              }}
+                              className="absolute inset-0 bg-gradient-to-r from-[#00C4FF] to-[#1254FF] rounded-full blur-md"
+                              style={{
+                                filter: 'blur(4px)',
+                                transform: 'scale(0.8)'
+                              }}
+                            />
+                          </motion.div>
                         )}
-                      </span>
+                      </div>
                     )}
-                    {/* --- END: SEEN STATUS FIX --- */}
+                    {/* --- END: FUTURISTIC HOLOGRAPHIC MESSAGE STATUS --- */}
                   </div>
                 </motion.div>
               ))}
@@ -762,7 +1077,7 @@ export function ChatbotWidgetSupabase() {
             </div>
 
             {/* Enhanced Input Area */}
-            <div className="border-t border-gray-800/50 p-4 bg-gray-900/50 backdrop-blur-sm">
+            <div className="border-t border-[#00C4FF]/20 p-4 bg-black/30 backdrop-blur-sm">
               <div className="flex gap-2 items-center">
                 <input
                   type="text"
@@ -776,13 +1091,13 @@ export function ChatbotWidgetSupabase() {
                   }}
                   onBlur={handleBlur} // Use new handler
                   placeholder="Type a message..."
-                  className="flex-1 bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#1254FF]/50 focus:border-[#1254FF] transition-all"
+                  className="flex-1 bg-black/50 border-2 border-[#00C4FF]/30 rounded-xl px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-[#00C4FF]/50 focus:border-[#00C4FF] transition-all backdrop-blur-sm"
                 />
                 <motion.button
                   onClick={handleSendMessage}
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.05, boxShadow: "0 0 15px #00C4FF" }}
                   whileTap={{ scale: 0.95 }}
-                  className="bg-gradient-to-r from-[#1254FF] to-[#00C4FF] text-white px-5 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl font-medium"
+                  className="bg-gradient-to-r from-[#1254FF] to-[#00C4FF] text-white px-5 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl font-medium border-2 border-[#00C4FF]/50"
                 >
                   Send
                 </motion.button>

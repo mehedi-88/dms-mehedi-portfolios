@@ -91,7 +91,7 @@ export function Contact() {
           variants={itemVariants}
           className="body-text text-center text-[#8D8D8D] mb-12"
         >
-          Have a project in mind? Let's collaborate and create something amazing together.
+          Have a project in mind? Let&apos;s collaborate and create something amazing together.
         </motion.p>
 
         <div className="grid md:grid-cols-2 gap-8">

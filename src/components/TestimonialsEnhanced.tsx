@@ -142,7 +142,7 @@ const MarqueeRow: React.FC<MarqueeRowProps> = ({
               {/* Testimonial Text */}
               {/* Small font size for mobile */}
               <p className="text-xs sm:text-sm md:text-base text-[#8D8D8D] mb-3 md:mb-4 italic leading-relaxed">
-                "{testimonial.text}"
+                &ldquo;{testimonial.text}&rdquo;
               </p>
 
               {/* Author */}

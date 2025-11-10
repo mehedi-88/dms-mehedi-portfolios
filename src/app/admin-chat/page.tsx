@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { MessageSquare, Send } from 'lucide-react';
+import { usePresence, useOwnPresence } from '@/lib/usePresence';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface ChatSession {
@@ -34,6 +35,7 @@ export default function AdminChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const channelsRef = useRef<RealtimeChannel[]>([]);
+  const [timeUpdate, setTimeUpdate] = useState(0);
 
   // Function to mark all user messages as seen in the current chat
   const markMessagesAsSeen = async (chatId: string) => {
@@ -303,12 +305,24 @@ export default function AdminChatPage() {
     return date.toLocaleDateString();
   };
 
+  const { isOnline, goOffline, goOnline } = useOwnPresence('admin');
+
   const adminLocalTyping = inputValue.trim().length > 0;
+
+  // Live time updates every 60 seconds for dynamic offline time display
+  useEffect(() => {
+    const timeUpdateInterval = setInterval(() => {
+      setTimeUpdate(prev => prev + 1);
+    }, 60000); // Update every 60 seconds
+
+    return () => clearInterval(timeUpdateInterval);
+  }, []);
 
   // Cleanup channels on unmount
   useEffect(() => {
+    const channels = channelsRef.current;
     return () => {
-      channelsRef.current.forEach(channel => {
+      channels.forEach(channel => {
         supabase.removeChannel(channel);
       });
     };
@@ -333,9 +347,35 @@ export default function AdminChatPage() {
               <p className="text-sm text-white/60">Manage all customer conversations</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500/20 border border-green-400/50">
-            <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
-            <span className="text-sm font-medium text-green-300">Online</span>
+          <div className="flex items-center gap-3">
+            <motion.button
+              onClick={goOnline}
+              disabled={isOnline}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
+                isOnline
+                  ? 'bg-green-500/20 text-green-300 border border-green-400/50 cursor-not-allowed'
+                  : 'bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500/20 hover:border-green-500/50'
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400' : 'bg-green-500'}`}></div>
+              Online
+            </motion.button>
+            <motion.button
+              onClick={goOffline}
+              disabled={!isOnline}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
+                !isOnline
+                  ? 'bg-red-500/20 text-red-300 border border-red-400/50 cursor-not-allowed'
+                  : 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 hover:border-red-500/50'
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full ${!isOnline ? 'bg-red-400' : 'bg-red-500'}`}></div>
+              Offline
+            </motion.button>
           </div>
         </div>
 
@@ -357,12 +397,6 @@ export default function AdminChatPage() {
                       key={session.id}
                       onClick={async () => {
                         setSelectedChat(session.id);
-                        // Update admin presence when selecting a chat
-                        await supabase.from('user_presence').upsert({
-                          user_id: 'admin',
-                          is_online: true,
-                          last_seen: new Date().toISOString(),
-                        });
                         // Mark messages as seen immediately when focusing on chat
                         await markMessagesAsSeen(session.id);
                       }}
@@ -376,10 +410,53 @@ export default function AdminChatPage() {
                         <span className="font-medium text-white text-sm truncate max-w-[140px]">
                           {session.guest_name.replace('guest_', 'User ')}
                         </span>
-                        <div className={`w-2 h-2 rounded-full ${session.is_online ? 'bg-green-400' : 'bg-gray-500'}`}></div>
+                        {session.is_online ? (
+                          <motion.div 
+                            className="flex items-center gap-1 text-[#00FF99] text-xs font-bold"
+                            animate={{ 
+                              textShadow: [
+                                '0 0 3px #00FF99, 0 0 6px #00FF99',
+                                '0 0 6px #00FF99, 0 0 12px #00FF99',
+                                '0 0 3px #00FF99, 0 0 6px #00FF99'
+                              ]
+                            }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                          >
+                            🟢
+                          </motion.div>
+                        ) : (
+                          <div className="w-2 h-2 bg-[#FF4B4B] rounded-full"></div>
+                        )}
                       </div>
                       <p className="text-xs text-white/50">
-                        {formatDate(session.last_seen)} at {formatTime(session.last_seen)}
+                        {session.is_online ? (
+                          <span className="text-[#00FF99] font-medium">Online Now</span>
+                        ) : (
+                          (() => {
+                            const lastSeenDate = new Date(session.last_seen);
+                            const now = new Date();
+                            const diffMs = now.getTime() - lastSeenDate.getTime();
+                            const diffSeconds = Math.floor(diffMs / 1000);
+                            const diffMinutes = Math.floor(diffSeconds / 60);
+                            const diffHours = Math.floor(diffMinutes / 60);
+                            const diffDays = Math.floor(diffHours / 24);
+
+                            const rtf = new Intl.RelativeTimeFormat('en', { 
+                              numeric: 'auto',
+                              style: 'short' 
+                            });
+
+                            if (diffSeconds < 60) {
+                              return 'just now';
+                            } else if (diffMinutes < 60) {
+                              return rtf.format(-diffMinutes, 'minute');
+                            } else if (diffHours < 24) {
+                              return rtf.format(-diffHours, 'hour');
+                            } else {
+                              return formatDate(session.last_seen) + ' at ' + formatTime(session.last_seen);
+                            }
+                          })()
+                        )}
                       </p>
                     </motion.button>
                   ))
@@ -398,9 +475,71 @@ export default function AdminChatPage() {
                     <h2 className="text-xl font-semibold text-white">
                       {sessions.find((s) => s.id === selectedChat)?.guest_name}
                     </h2>
-                    <p className="text-sm text-white/60">
-                      {sessions.find((s) => s.id === selectedChat)?.is_online ? 'Online' : 'Offline'}
-                    </p>
+                    <div className="text-sm text-white/60">
+                      {(() => {
+                        const session = sessions.find((s) => s.id === selectedChat);
+                        if (!session) return null;
+                        
+                        if (session.is_online) {
+                          return (
+                            <motion.span 
+                              className="flex items-center gap-1 text-[#00FF99] font-bold"
+                              animate={{ 
+                                textShadow: [
+                                  '0 0 5px #00FF99, 0 0 10px #00FF99, 0 0 15px #00FF99',
+                                  '0 0 10px #00FF99, 0 0 20px #00FF99, 0 0 30px #00FF99',
+                                  '0 0 5px #00FF99, 0 0 10px #00FF99, 0 0 15px #00FF99'
+                                ]
+                              }}
+                              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                            >
+                              🟢 Online Now
+                            </motion.span>
+                          );
+                        } else {
+                          const lastSeenDate = new Date(session.last_seen);
+                          const now = new Date();
+                          const diffMs = now.getTime() - lastSeenDate.getTime();
+                          const diffSeconds = Math.floor(diffMs / 1000);
+                          const diffMinutes = Math.floor(diffSeconds / 60);
+                          const diffHours = Math.floor(diffMinutes / 60);
+                          const diffDays = Math.floor(diffHours / 24);
+
+                          const rtf = new Intl.RelativeTimeFormat('en', { 
+                            numeric: 'auto',
+                            style: 'long' 
+                          });
+
+                          let timeAgo = 'Never';
+                          if (diffSeconds < 60) {
+                            timeAgo = 'just now';
+                          } else if (diffMinutes < 60) {
+                            timeAgo = rtf.format(-diffMinutes, 'minute');
+                          } else if (diffHours < 24) {
+                            timeAgo = rtf.format(-diffHours, 'hour');
+                          } else if (diffDays < 7) {
+                            timeAgo = rtf.format(-diffDays, 'day');
+                          } else {
+                            timeAgo = lastSeenDate.toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'short', 
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            });
+                          }
+
+                          return (
+                            <span className="flex items-center gap-2">
+                              <span className="w-2 h-2 bg-[#FF4B4B] rounded-full"></span>
+                              <span className="text-[#FF4B4B] font-bold">Offline</span>
+                              <span className="text-gray-400">· Last seen {timeAgo}</span>
+                            </span>
+                          );
+                        }
+                      })()}
+                    </div>
                   </div>
 
                   {/* Messages Area */}
