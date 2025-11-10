@@ -13,7 +13,7 @@ const projects = [
     description: 'Move X Health is a health and fitness platform focused on movement and wellness. (Case study description placeholder)',
     role: 'Head of Digital Marketing – strategy, branding & AI integration',
     achievements: ['Launched AI-powered fitness tracking', 'Built scalable wellness community', 'Integrated real-time analytics'],
-    technologies: ['Next.js', 'Firebase', 'AI', 'TypeScript'],
+    technologies: ['Social Media Marketing', 'SEO', 'AI', 'Analytics'],
     previewImage: '/move-x.jpg',
   },
   {
@@ -47,7 +47,7 @@ const projects = [
     role: 'Community Manager – content & engagement',
     achievements: ['Built collaborative learning tools', 'Grew active user base', 'Curated expert content'],
     technologies: ['Matlab', 'React', 'Community'],
-    previewImage: '/hello matlab.jpg',
+    previewImage: '/hello-matlab.jpg',
   },
   {
     slug: 'elita-mart',
