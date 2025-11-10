@@ -41,7 +41,7 @@ const projects = [
   {
     slug: 'hello-matlab',
     title: 'Hello Matlab',
-    logo: '/hello matlab.jpg',
+    logo: '/hello-matlab.jpg',
     tagline: 'Matlab learning and collaboration hub.',
     description: 'Hello Matlab is a learning and collaboration hub for Matlab enthusiasts. (Case study description placeholder)',
     role: 'Community Manager – content & engagement',
