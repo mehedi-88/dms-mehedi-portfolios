@@ -3,10 +3,6 @@ import OpenAI from 'openai';
 
 export const dynamic = 'force-dynamic';
 
-// Initialize OpenAI client
-// The API key is automatically read from the OPENAI_API_KEY environment variable
-const openai = new OpenAI();
-
 export async function POST(req: NextRequest) {
   try {
     const { tool, input } = await req.json();
@@ -45,6 +41,11 @@ export async function POST(req: NextRequest) {
         result = await handleTranslator(input, model);
         break;
 
+      case 'project-assistant':
+        // Project-specific AI assistant
+        result = await handleProjectAssistant(input);
+        break;
+
       default:
         return NextResponse.json({ error: `Unknown tool: ${tool}` }, { status: 400 });
     }
@@ -59,9 +60,11 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// --- Tool Handlers using OpenAI ---
-
 async function handleOcrAndCaptioning(input: string, model: string): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('API key missing');
+  const openai = new OpenAI({ apiKey });
+  
   // Extract base64 content from data URL
   const [mimeType, base64Image] = input.split(';base64,');
   const image_url = 'data:' + mimeType + ';base64,' + base64Image;
@@ -86,6 +89,10 @@ async function handleOcrAndCaptioning(input: string, model: string): Promise<str
 }
 
 async function handleCodeGeneration(input: string, model: string): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('API key missing');
+  const openai = new OpenAI({ apiKey });
+  
   const prompt = 'Generate code based on the following request. Only output the code block. Request: ' + input;
 
   const response = await openai.chat.completions.create({
@@ -98,6 +105,10 @@ async function handleCodeGeneration(input: string, model: string): Promise<strin
 }
 
 async function handleCodeFixer(input: string, model: string): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('API key missing');
+  const openai = new OpenAI({ apiKey });
+  
   const prompt = 'Analyze the following code, identify any bugs, and provide a corrected version. Also, provide a brief explanation of the fix. Format the output with the explanation first, then a diff or a corrected code block. Code: ' + input;
 
   const response = await openai.chat.completions.create({
@@ -110,6 +121,10 @@ async function handleCodeFixer(input: string, model: string): Promise<string> {
 }
 
 async function handleCountriesList(input: string, model: string): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('API key missing');
+  const openai = new OpenAI({ apiKey });
+  
   const prompt = 'Provide a list of 10 countries and their capital cities, population, and flag emoji based on the theme: ' + input + '. Output the result as a single JSON array of objects, with keys: "country", "capital", "population", "flag". Do not include any text outside the JSON block.';
 
   const response = await openai.chat.completions.create({
@@ -124,6 +139,10 @@ async function handleCountriesList(input: string, model: string): Promise<string
 }
 
 async function handleTranslator(input: string, model: string): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('API key missing');
+  const openai = new OpenAI({ apiKey });
+  
   const prompt = 'Translate the following text or JSON object into English, preserving the original structure if it is a JSON object. Input: ' + input;
 
   const response = await openai.chat.completions.create({
@@ -133,5 +152,41 @@ async function handleTranslator(input: string, model: string): Promise<string> {
   });
 
   return response.choices[0].message.content || 'Could not translate text.';
+}
+
+async function handleProjectAssistant(input: any): Promise<string> {
+  if (!input || !input.question || !input.project) {
+    throw new Error('Missing question or project data.');
+  }
+
+  const { question, project } = input;
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('API key missing.');
+  }
+
+  const projectOpenai = new OpenAI({ apiKey });
+  const prompt = `You are an AI assistant for DMS Mehedi Portfolio. Explain the user's role and contributions in the following project:
+
+Project Title: ${project.title}
+Role: ${project.role}
+Achievements: ${project.achievements.join(', ')}
+Technologies: ${project.technologies.join(', ')}
+Description: ${project.description}
+
+User question: ${question}
+
+Reply in a friendly, professional tone, under 150 words.`;
+
+  const completion = await projectOpenai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: 'You are a helpful AI assistant for DMS Mehedi Portfolio.' },
+      { role: 'user', content: prompt },
+    ],
+    max_tokens: 300,
+  });
+
+  return completion.choices[0]?.message?.content?.trim() || 'Sorry, I could not generate a response.';
 }
 

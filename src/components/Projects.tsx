@@ -3,54 +3,56 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
+import Link from 'next/link';
+
 const projects = [
   {
     id: 1,
-    title: 'AI Portfolio Platform',
-    description: 'Next.js powered portfolio with AI integration and real-time chat.',
-    image: '🎨',
-    tags: ['Next.js', 'Firebase', 'AI', 'TypeScript'],
-    link: '#',
+    slug: 'move-x-health',
+    title: 'Move X Health',
+    description: 'A health and fitness platform focused on movement and wellness.',
+    image: '/move-x.jpg',
+    tags: ['Health', 'Fitness', 'Wellness'],
   },
   {
     id: 2,
-    title: 'E-Commerce Dashboard',
-    description: 'Advanced Shopify automation and analytics dashboard.',
-    image: '📊',
-    tags: ['React', 'Node.js', 'Shopify API', 'Analytics'],
-    link: '#',
+    slug: 'feusar',
+    title: 'Feusar',
+    description: 'A next-gen platform for seamless business operations.',
+    image: '/feusar.com.png',
+    tags: ['Business', 'Operations', 'Platform'],
   },
   {
     id: 3,
-    title: 'Digital Marketing Suite',
-    description: 'Comprehensive SEO and funnel management platform.',
-    image: '📈',
-    tags: ['Next.js', 'PostgreSQL', 'SEO', 'Analytics'],
-    link: '#',
+    slug: 'softollyo',
+    title: 'Softollyo',
+    description: 'Software solutions for modern enterprises.',
+    image: '/softollyo.com.jpg',
+    tags: ['Software', 'Enterprise', 'Solutions'],
   },
   {
     id: 4,
-    title: 'Real-Time Chat System',
-    description: 'Firebase-powered real-time messaging with admin panel.',
-    image: '💬',
-    tags: ['Firebase', 'React', 'Real-time DB', 'WebSocket'],
-    link: '#',
+    slug: 'hello-matlab',
+    title: 'Hello Matlab',
+    description: 'Matlab learning and collaboration hub.',
+    image: '/hello-matlab.jpg',
+    tags: ['Matlab', 'Learning', 'Collaboration'],
   },
   {
     id: 5,
-    title: 'AI Code Generator',
-    description: 'Gemini-powered code generation and analysis tool.',
-    image: '🤖',
-    tags: ['Gemini API', 'Next.js', 'AI', 'Code Analysis'],
-    link: '#',
+    slug: 'elita-mart',
+    title: 'Elita Mart',
+    description: 'E-commerce platform for premium products.',
+    image: '/Elita mart.png',
+    tags: ['E-commerce', 'Premium', 'Products'],
   },
   {
     id: 6,
-    title: 'Brand Strategy Platform',
-    description: 'Digital brand positioning and strategy development tool.',
-    image: '🎯',
-    tags: ['Strategy', 'Analytics', 'Branding', 'Consulting'],
-    link: '#',
+    slug: 'ai-portfolio-platform',
+    title: 'AI LLM Platform',
+    description: 'Next.js powered portfolio with AI integration.',
+    image: '/llm-applications-main.jpg',
+    tags: ['Next.js', 'AI', 'LLM'],
   },
 ];
 
@@ -115,7 +117,13 @@ export function Projects() {
                   className="absolute w-full h-full glass rounded-xl p-4 sm:p-6 flex flex-col justify-center items-center"
                   style={{ backfaceVisibility: 'hidden' }}
                 >
-                  <div className="text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4">{project.image}</div>
+                  <div className="w-20 h-20 mb-3 sm:mb-4 relative">
+                    <img
+                      src={project.image}
+                      alt={project.title}
+                      className="object-contain rounded-xl border-2 border-[#00C4FF] w-full h-full"
+                    />
+                  </div>
                   <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-center text-[#1254FF]">
                     {project.title}
                   </h3>
@@ -144,16 +152,12 @@ export function Projects() {
                       ))}
                     </div>
                   </div>
-                  <motion.a
-                    href={project.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    href={`/projects/${project.slug}`}
                     className="button-primary w-full mt-3 sm:mt-4 flex justify-center items-center text-sm sm:text-base"
-                    whileHover={{ scale: 1.05, boxShadow: "0 0 10px #00C4FF" }}
-                    whileTap={{ scale: 0.95 }}
                   >
                     View Project
-                  </motion.a>
+                  </Link>
                 </div>
               </motion.div>
             </motion.div>

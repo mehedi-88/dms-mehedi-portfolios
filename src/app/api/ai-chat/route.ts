@@ -3,9 +3,6 @@ import OpenAI from 'openai';
 
 export const dynamic = 'force-dynamic';
 
-// Initialize OpenAI client
-const openai = new OpenAI();
-
 export async function POST(req: NextRequest) {
   try {
     const { messages } = await req.json();
@@ -13,6 +10,13 @@ export async function POST(req: NextRequest) {
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Missing messages array' }, { status: 400 });
     }
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: 'API key missing' }, { status: 500 });
+    }
+
+    const openai = new OpenAI({ apiKey });
 
     // Build conversation context
     const conversationHistory = messages.slice(-3).map((msg: any) => {

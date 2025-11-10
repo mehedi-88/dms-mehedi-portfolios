@@ -39,12 +39,15 @@ export function ChatbotWidgetSupabase() {
   // *** দ্রষ্টব্য: আমি 'isMobile' স্টেটটি সরিয়ে দিয়েছি কারণ এটি আর প্রয়োজন নেই ***
   // const [isMobile, setIsMobile] = useState(false);
 
-  // --- START TYPING LOGIC ---
+  // --- START IMPROVED TYPING LOGIC ---
   const isTypingRef = useRef(false);
+  const typingDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const updateTypingStatus = useCallback(async (isTyping: boolean) => {
     if (!chatId || !guestName || isTyping === isTypingRef.current) return;
     isTypingRef.current = isTyping;
+
+    console.log(`Widget - Updating typing status: chat=${chatId}, user=${guestName}, isTyping=${isTyping}`);
 
     try {
       const { error } = await supabase.from('typing_status').upsert(
@@ -57,33 +60,50 @@ export function ChatbotWidgetSupabase() {
         { onConflict: 'chat_id,user_id' }
       );
       if (error) {
-        console.error('typing upsert error:', error);
+        console.error('Widget - typing upsert error:', error);
         isTypingRef.current = !isTyping; // Revert on error
+      } else {
+        console.log('Widget - Typing status updated successfully');
       }
     } catch (error) {
-      console.error('typing update error:', error);
+      console.error('Widget - typing update error:', error);
     }
   }, [chatId, guestName]);
   
+  // Event-based typing: Show when typing starts
   const handleOnTyping = (value: string) => {
+    // Show typing animation immediately when user starts typing
     if (value.length > 0 && !isTypingRef.current) {
       updateTypingStatus(true);
     }
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
+    
+    // Clear previous debounce timer
+    if (typingDebounceRef.current) {
+      clearTimeout(typingDebounceRef.current);
     }
-    typingTimeoutRef.current = setTimeout(() => {
+    
+    // Hide typing after 1.2 seconds of no activity
+    typingDebounceRef.current = setTimeout(() => {
       updateTypingStatus(false);
-    }, 2500);
+    }, 1200);
   };
 
+  // Immediately stop typing on blur
   const handleBlur = () => {
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
+    if (typingDebounceRef.current) {
+      clearTimeout(typingDebounceRef.current);
     }
     updateTypingStatus(false);
   };
-  // --- END TYPING LOGIC ---
+
+  // Immediately stop typing when message is sent
+  const handleMessageSent = useCallback(() => {
+    if (typingDebounceRef.current) {
+      clearTimeout(typingDebounceRef.current);
+    }
+    updateTypingStatus(false);
+  }, [updateTypingStatus]);
+  // --- END IMPROVED TYPING LOGIC ---
 
   const scrollToBottom = useCallback((force = false) => {
     if (!messagesEndRef.current) return;
@@ -299,14 +319,18 @@ export function ChatbotWidgetSupabase() {
         table: 'typing_status',
         filter: `chat_id=eq.${chatId}`
       }, (payload: { new: any }) => {
+        console.log('Widget - Typing status received:', payload.new, 'Admin ID check:', payload.new?.user_id === 'admin');
         if (payload.new?.user_id === 'admin') {
+          console.log('Widget - Setting admin typing:', !!payload.new?.is_typing);
           setAdminTyping(!!payload.new?.is_typing);
         } else if (payload.new?.user_id === guestName) {
+          console.log('Widget - Setting user typing:', !!payload.new?.is_typing);
           setUserTyping(!!payload.new?.is_typing);
         }
       })
       .subscribe((status, err) => {
-        if (err) console.error('Typing subscription error:', err);
+        console.log('Widget - Typing subscription status:', status);
+        if (err) console.error('Widget - Typing subscription error:', err);
       });
     channelsRef.current.push(typingChannel);
     return () => {
@@ -344,10 +368,8 @@ export function ChatbotWidgetSupabase() {
   const handleSendMessage = async () => {
     if (!inputValue.trim() || !chatId) return;
 
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-    await updateTypingStatus(true); // Flash typing on send
+    // Stop typing immediately when sending
+    handleMessageSent();
 
     try {
       const newMessage = {
@@ -372,10 +394,17 @@ export function ChatbotWidgetSupabase() {
           const response = await fetch('/api/ai-chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages: [...messages, newMessage] }),
+            body: JSON.stringify({ 
+              messages: [...messages, newMessage].map(m => ({
+                sender: m.sender,
+                message: m.message,
+                content: m.message
+              }))
+            }),
           });
           if (response.ok) {
-            const { reply } = await response.json();
+            const data = await response.json();
+            const reply = data.reply || 'I could not generate a response.';
             const aiReply = {
               id: uuidv4(),
               chat_id: chatId,
@@ -396,14 +425,13 @@ export function ChatbotWidgetSupabase() {
             };
             await supabase.from('chat_messages').insert(fallbackReply);
           }
-        } catch {
+        } catch (err) {
+          console.error('AI chat error:', err);
           setAiThinking(false);
         }
       }
     } catch {
       // Send message network failure
-    } finally {
-      await updateTypingStatus(false); // Stop typing after send
     }
   };
 
@@ -464,8 +492,8 @@ export function ChatbotWidgetSupabase() {
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
+      if (typingDebounceRef.current) {
+        clearTimeout(typingDebounceRef.current);
       }
     };
   }, []);

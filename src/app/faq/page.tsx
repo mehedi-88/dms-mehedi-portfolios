@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import dynamic from 'next/dynamic';
-const FAQChatbox = dynamic(() => import('@/components/FAQChatbox'), { ssr: false });
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, Sparkles, ChevronDown, Loader2 } from 'lucide-react';
 
@@ -220,8 +218,7 @@ export default function FAQPage() {
           </p>
         </motion.div>
 
-        {/* AI Chatbox Section */}
-        <FAQChatbox />
+        {/* AI Chatbox Section - Integrated inline with Ask AI buttons */}
 
         {/* FAQ Accordions by Category */}
         <motion.div

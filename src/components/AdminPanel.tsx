@@ -166,8 +166,10 @@ export function AdminPanel() {
           table: 'typing_status',
         },
         (payload: any) => {
+          console.log('AdminPanel - Typing status received:', payload.new);
           if (!payload?.new) return;
           if (payload.new.user_id !== 'admin') {
+            console.log(`AdminPanel - Setting typing for chat ${payload.new.chat_id}: ${payload.new.is_typing}`);
             setTypingStates((prev) => ({
               ...prev,
               [payload.new.chat_id]: !!payload.new.is_typing,
@@ -409,37 +411,80 @@ export function AdminPanel() {
     }
   }, []);
 
-  // Admin typing
-  const debouncedTyping = useCallback((isTyping: boolean) => {
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-    const updateTyping = async () => {
-      const chatID = selectedChat ? selectedChat : undefined;
-      if (!chatID) return;
-      try {
-        await supabase.from('typing_status').upsert({
-          chat_id: chatID,
+  // Real-time typing indicator logic
+  const isAdminTypingRef = useRef(false);
+  const typingDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const updateAdminTypingStatus = useCallback(async (isTyping: boolean) => {
+    if (!selectedChat || isTyping === isAdminTypingRef.current) return;
+    isAdminTypingRef.current = isTyping;
+
+    console.log(`AdminPanel - Updating typing status: chat=${selectedChat}, isTyping=${isTyping}`);
+
+    try {
+      await supabase.from('typing_status').upsert(
+        {
+          chat_id: selectedChat,
           user_id: 'admin',
           is_typing: isTyping,
-        }, {
-          onConflict: 'chat_id,user_id'
-        });
-      } catch (err) {
-        console.error('Error updating typing status:', err);
-      }
-    };
-    typingTimeoutRef.current = setTimeout(updateTyping, isTyping ? 0 : 2000);
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'chat_id,user_id' }
+      );
+      console.log(`AdminPanel - Typing status updated successfully`);
+    } catch (err) {
+      console.error('AdminPanel - Error updating admin typing status:', err);
+      isAdminTypingRef.current = !isTyping; // Revert on error
+    }
   }, [selectedChat]);
+
+  // Event-based typing: Show when admin starts typing
+  const handleAdminTyping = useCallback((value: string) => {
+    // Show typing animation immediately when admin starts typing
+    if (value.length > 0 && !isAdminTypingRef.current) {
+      updateAdminTypingStatus(true);
+    }
+
+    // Clear previous debounce timer
+    if (typingDebounceRef.current) {
+      clearTimeout(typingDebounceRef.current);
+    }
+
+    // Hide typing after 1.5 seconds of no activity
+    typingDebounceRef.current = setTimeout(() => {
+      updateAdminTypingStatus(false);
+    }, 1500);
+  }, [updateAdminTypingStatus]);
+
+  // Immediately stop typing on blur
+  const handleAdminBlur = useCallback(() => {
+    if (typingDebounceRef.current) {
+      clearTimeout(typingDebounceRef.current);
+    }
+    updateAdminTypingStatus(false);
+  }, [updateAdminTypingStatus]);
+
+  // Immediately stop typing when message is sent
+  const handleAdminMessageSent = useCallback(() => {
+    if (typingDebounceRef.current) {
+      clearTimeout(typingDebounceRef.current);
+    }
+    updateAdminTypingStatus(false);
+  }, [updateAdminTypingStatus]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
-  }, []);
+    handleAdminTyping(value);
+  }, [handleAdminTyping]);
 
   // Admin send message
   const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim() || !selectedChat) return;
+
+    // Stop typing immediately when sending
+    handleAdminMessageSent();
+
     try {
       const message = {
         id: uuidv4(),
@@ -456,12 +501,11 @@ export function AdminPanel() {
         setMessages(prev => prev.filter(m => m.id !== message.id));
       } else {
         setInputValue('');
-        debouncedTyping(false);
       }
     } catch (err) {
       console.error('Failed to send admin message:', err);
     }
-  }, [inputValue, selectedChat, debouncedTyping, messages]);
+  }, [inputValue, selectedChat, handleAdminMessageSent]);
 
   const formatLastSeen = (timestamp: string) => {
     if (!timestamp) return 'Never';
@@ -799,15 +843,15 @@ export function AdminPanel() {
                             if (e.key === 'Enter') {
                               handleSendMessage();
                             } else {
-                              debouncedTyping(true);
+                              handleAdminTyping(inputValue + (e.key || ''));
                             }
                           }}
                           onKeyUp={() => {
                             if (!inputValue.trim()) {
-                              debouncedTyping(false);
+                              handleAdminBlur();
                             }
                           }}
-                          onBlur={() => { debouncedTyping(false); if (typingTimeoutRef.current) { clearTimeout(typingTimeoutRef.current); } }}
+                          onBlur={handleAdminBlur}
                           placeholder="Type your message..."
                           className="w-full bg-gray-800/60 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#00C4FF] focus:border-[#00C4FF] transition-all resize-none"
                         />
