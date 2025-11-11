@@ -6,6 +6,7 @@ import { PreloaderAI } from '@/components/PreloaderAI';
 import { Footer } from '@/components/Footer';
 import { Navbar } from '@/components/Navbar';
 import { ChatbotWidgetSupabase } from '@/components/ChatbotWidgetSupabase';
+import Robotic3DSystem from '@/components/Robotic3DSystem';
 
 export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -39,11 +40,13 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
         enableColorScheme
         disableTransitionOnChange={false}
       >
-        <PreloaderAI isLoading={isLoading} />
-        <Navbar />
-        {children}
-        <Footer />
-        {!isLoading && <ChatbotWidgetSupabase />}
+        <Robotic3DSystem>
+          <PreloaderAI isLoading={isLoading} />
+          <Navbar />
+          {children}
+          <Footer />
+          {!isLoading && <ChatbotWidgetSupabase />}
+        </Robotic3DSystem>
       </ThemeProvider>
     </body>
   );
