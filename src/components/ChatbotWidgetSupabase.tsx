@@ -573,9 +573,7 @@ export function ChatbotWidgetSupabase() {
     const currentPresenceDebounce = presenceDebounceRef.current;
 
     return () => {
-      channelsRef.current.forEach(channel => {
-        supabase.removeChannel(channel);
-      });
+      // Removed redundant channel removal; each useEffect handles its own channels
       if (currentScrollTimeout) {
         clearTimeout(currentScrollTimeout);
       }
