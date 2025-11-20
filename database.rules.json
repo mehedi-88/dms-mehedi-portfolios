@@ -1,0 +1,44 @@
+{
+  "rules": {
+    "messages": {
+      "$chatId": {
+        ".read": "auth != null || root.child('presence').child($chatId.replace('chat_', '')).exists()",
+        ".write": "auth != null || root.child('presence').child($chatId.replace('chat_', '')).exists()",
+        "$messageId": {
+          ".validate": "newData.hasChildren(['sender', 'text', 'timestamp', 'status'])",
+          "sender": {
+            ".validate": "newData.val() === 'user' || newData.val() === 'admin'"
+          },
+          "text": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "timestamp": {
+            ".validate": "newData.isNumber()"
+          },
+          "status": {
+            ".validate": "newData.val() === 'sent' || newData.val() === 'seen'"
+          }
+        }
+      }
+    },
+    "presence": {
+      "$userId": {
+        ".read": true,
+        ".write": "auth != null || $userId.startsWith('user_')",
+        "online": {
+          ".validate": "newData.isBoolean()"
+        },
+        "lastSeen": {
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+    "typingStatus": {
+      "$chatId": {
+        ".read": "auth != null || root.child('presence').child($chatId.replace('chat_', '')).exists()",
+        ".write": "auth != null || root.child('presence').child($chatId.replace('chat_', '')).exists()"
+      }
+    }
+  }
+}
+

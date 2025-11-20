@@ -1,0 +1,200 @@
+{
+  "info": {
+    "name": "DMS Mehedi - Gemini API Endpoints",
+    "description": "API collection for testing DMS AI Powered Tool endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "AI Tools",
+      "item": [
+        {
+          "name": "OCR & Image Captioning",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool\": \"ocr\",\n  \"input\": \"data:image/jpeg;base64,...\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/ai-tools",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "ai-tools"]
+            }
+          }
+        },
+        {
+          "name": "Code Generator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool\": \"codegen\",\n  \"input\": \"Create a React component for a button with loading state\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/ai-tools",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "ai-tools"]
+            }
+          }
+        },
+        {
+          "name": "Code Fixer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool\": \"codefixer\",\n  \"input\": \"function add(a, b) { return a + b }\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/ai-tools",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "ai-tools"]
+            }
+          }
+        },
+        {
+          "name": "Countries List",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool\": \"countries\",\n  \"input\": \"Get all countries with their flags and ISO codes\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/ai-tools",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "ai-tools"]
+            }
+          }
+        },
+        {
+          "name": "Translator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool\": \"translator\",\n  \"input\": \"Translate 'Hello, how are you?' to Spanish and French\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/ai-tools",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "ai-tools"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat API",
+      "item": [
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatId\": \"chat_user_123\",\n  \"sender\": \"user\",\n  \"text\": \"Hello, I need help with my project\",\n  \"timestamp\": 1234567890\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/chat/send",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "chat", "send"]
+            }
+          }
+        },
+        {
+          "name": "Get Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/chat/messages?chatId=chat_user_123",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "chat", "messages"],
+              "query": [
+                {
+                  "key": "chatId",
+                  "value": "chat_user_123"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Message Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatId\": \"chat_user_123\",\n  \"messageId\": \"msg_123\",\n  \"status\": \"seen\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/chat/status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "chat", "status"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

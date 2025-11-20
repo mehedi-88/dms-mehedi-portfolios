@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Sitemap: https://dms-mehedi.vercel.app/sitemap.xml
+Host: https://dms-mehedi.vercel.app

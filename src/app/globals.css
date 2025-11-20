@@ -1,0 +1,396 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #1254FF;
+  --accent: #00C4FF;
+  --neutral: #8D8D8D;
+  --background: #000000;
+  --foreground: #FFFFFF;
+  --glass-light: rgba(255, 255, 255, 0.1);
+  --glass-dark: rgba(0, 0, 0, 0.3);
+}
+
+/* Light mode variables - Professional Design */
+.light {
+  --background: #FFFFFF;
+  --foreground: #1E293B;
+  --glass-light: rgba(255, 255, 255, 0.95);
+  --glass-dark: rgba(0, 0, 0, 0.02);
+  --primary-light: #3B82F6;
+  --accent-light: #06B6D4;
+  --muted-light: #64748B;
+  --border-light: rgba(59, 130, 246, 0.1);
+  --card-bg-light: rgba(255, 255, 255, 0.8);
+  --shadow-light: rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode variables */
+.dark {
+  --background: #000000;
+  --foreground: #FFFFFF;
+  --glass-light: rgba(255, 255, 255, 0.1);
+  --glass-dark: rgba(0, 0, 0, 0.3);
+}
+
+/* Profile Image Frame Variables - Easy Customization */
+:root {
+  --profile-frame-border-radius: 1rem; /* 16px */
+  --profile-frame-glow-blur: 30px;
+  --profile-frame-glow-opacity: 0.7;
+  --profile-frame-animation-duration: 12s;
+  --profile-frame-hover-scale: 1.02;
+  --profile-frame-hover-glow: 0 0 30px rgba(0, 196, 255, 0.6);
+}
+
+/* Profile Image Frame Styles */
+.profile-frame {
+  border-radius: var(--profile-frame-border-radius);
+  transition: all 0.3s ease;
+}
+
+.profile-frame-glow {
+  filter: blur(var(--profile-frame-glow-blur));
+  opacity: var(--profile-frame-glow-opacity);
+  animation-duration: var(--profile-frame-animation-duration);
+}
+
+.profile-frame:hover {
+  transform: scale(var(--profile-frame-hover-scale));
+  box-shadow: var(--profile-frame-hover-glow);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px; /* Account for fixed navbar */
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+  background-color: var(--background);
+  color: var(--foreground);
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism utility classes */
+.glass {
+  background: var(--glass-dark);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.light .glass {
+  background: var(--glass-light);
+  border: 1px solid var(--border-light);
+  box-shadow: 0 4px 6px -1px var(--shadow-light);
+}
+
+/* Gradient backgrounds */
+.gradient-primary {
+  background: linear-gradient(135deg, #1254FF 0%, #00C4FF 100%);
+}
+
+.light .gradient-primary {
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+}
+
+.gradient-dark-space {
+  background: linear-gradient(135deg, #000000 0%, #0a0e27 50%, #1a0033 100%);
+}
+
+/* Light mode backgrounds */
+.bg-light-gradient {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 50%, #E2E8F0 100%);
+}
+
+/* Dark mode backgrounds */
+.bg-dark-gradient {
+  background: linear-gradient(135deg, #000000 0%, #0a0e27 50%, #1a0033 100%);
+}
+
+/* Smooth animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(18, 84, 255, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(0, 196, 255, 0.8);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.6s ease-out;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Enhanced Smooth Scrolling */
+* {
+  scroll-behavior: smooth;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px; /* Account for fixed navbar */
+}
+
+/* Smooth scrolling for all elements */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for better UX */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.light ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #1254FF 0%, #00C4FF 100%);
+  border-radius: 4px;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #00C4FF 0%, #1254FF 100%);
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%);
+}
+
+/* Selection color */
+::selection {
+  background: var(--primary);
+  color: var(--foreground);
+}
+
+/* Light Mode Enhancements */
+.light {
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Light mode specific styles */
+.light .card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
+}
+
+.light .card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Professional light mode gradients */
+.light .gradient-text {
+  background: linear-gradient(135deg, #1E293B 0%, #3B82F6 50%, #06B6D4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Responsive typography */
+@layer components {
+  .heading-1 {
+    @apply text-4xl md:text-5xl font-bold tracking-tight;
+  }
+
+  .heading-2 {
+    @apply text-3xl md:text-4xl font-bold tracking-tight;
+  }
+
+  .heading-3 {
+    @apply text-2xl md:text-3xl font-bold tracking-tight;
+  }
+
+  .body-text {
+    @apply text-base md:text-lg leading-relaxed text-gray-700 dark:text-gray-300;
+  }
+
+  .light .body-text {
+    @apply text-slate-700;
+  }
+
+  .text-primary {
+    @apply text-[#1254FF] dark:text-[#00C4FF];
+  }
+
+  .light .text-primary {
+    @apply text-blue-600;
+  }
+
+  .text-secondary {
+    @apply text-[#00C4FF] dark:text-[#1254FF];
+  }
+
+  .light .text-secondary {
+    @apply text-cyan-600;
+  }
+
+  .text-muted {
+    @apply text-gray-600 dark:text-gray-400;
+  }
+
+  .light .text-muted {
+    @apply text-slate-600;
+  }
+
+  .button-primary {
+    @apply px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105 active:scale-95 bg-gradient-to-r from-[#1254FF] to-[#00C4FF] text-white shadow-lg hover:shadow-xl;
+  }
+
+  .light .button-primary {
+    @apply bg-gradient-to-r from-blue-600 to-cyan-600 shadow-md hover:shadow-lg;
+  }
+
+  .button-secondary {
+    @apply px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-[#1254FF] text-[#1254FF] hover:bg-[#1254FF] hover:text-white dark:text-[#00C4FF] dark:border-[#00C4FF] dark:hover:bg-[#00C4FF] dark:hover:text-black;
+  }
+
+  .light .button-secondary {
+    @apply border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white;
+  }
+
+  .button-light {
+    @apply px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105 active:scale-95 bg-white text-[#1254FF] hover:bg-gray-50 shadow-lg hover:shadow-xl border border-gray-200;
+  }
+
+  .light .button-light {
+    @apply bg-white text-blue-600 hover:bg-slate-50 border-slate-200 shadow-md;
+  }
+
+  .button-dark {
+    @apply px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105 active:scale-95 bg-gray-900 text-white hover:bg-gray-800 shadow-lg hover:shadow-xl border border-gray-700;
+  }
+}
+
+
+
+/* NASA-style Animated Space Background */
+.star-field {
+  background: #000000;
+  overflow: hidden;
+  position: relative;
+}
+
+.star-field::before,
+.star-field::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-repeat: repeat;
+  pointer-events: none;
+}
+
+/* Small stars */
+.star-field::before {
+  background-image: radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
+                    radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
+                    radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0,0,0,0)),
+                    radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0)),
+                    radial-gradient(2px 2px at 120px 140px, #eee, rgba(0,0,0,0));
+  background-size: 200px 200px;
+  animation: star-move 200s linear infinite;
+}
+
+/* Medium stars */
+.star-field::after {
+  background-image: radial-gradient(3px 3px at 150px 100px, #fff, rgba(0,0,0,0)),
+                    radial-gradient(3px 3px at 200px 250px, #fff, rgba(0,0,0,0)),
+                    radial-gradient(3px 3px at 300px 150px, #fff, rgba(0,0,0,0));
+  background-size: 400px 400px;
+  animation: star-move 100s linear infinite;
+  opacity: 0.7;
+}
+
+@keyframes star-move {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(100%, 100%);
+  }
+}
+
+/* Slow pulse for chatbot icon */
+@keyframes pulse-slow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(22, 163, 74, 0);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s infinite;
+}
+
