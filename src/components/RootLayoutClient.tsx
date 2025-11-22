@@ -20,140 +20,142 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
     setMounted(true);
     
     // Detect network speed and set appropriate minimum load time
-    const getMinLoadTimeBasedOnSpeed = (): number => {
+    const getNetworkBasedTiming = () => {
       const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
       
-      if (connection && connection.effectiveType) {
+      if (connection) {
         const effectiveType = connection.effectiveType;
+        const downlink = connection.downlink || 0;
         
         // Network-based minimum load times
-        switch (effectiveType) {
-          case '4g':
-            return 500; // Fast: 0.5-1s
-          case '3g':
-            return 1500; // Medium: 1.5-2s
-          case '2g':
-            return 3000; // Slow: 3s
-          case 'slow-2g':
-            return 3000; // Very slow: 3s
-          default:
-            return 1000; // Default: 1s
+        if (effectiveType === '4g' || downlink > 5) {
+          return { minTime: 500, checkInterval: 150, maxWaitTime: 10000 }; // Fast
+        } else if (effectiveType === '3g' || downlink > 2) {
+          return { minTime: 1000, checkInterval: 200, maxWaitTime: 15000 }; // Medium
+        } else if (effectiveType === '2g' || effectiveType === 'slow-2g' || downlink <= 2) {
+          return { minTime: 1500, checkInterval: 300, maxWaitTime: 20000 }; // Slow
         }
       }
       
-      // Fallback: Check device memory
+      // Fallback based on device memory
       const deviceMemory = (navigator as any).deviceMemory;
       if (deviceMemory) {
-        if (deviceMemory >= 8) return 500;
-        if (deviceMemory >= 4) return 1000;
-        return 1500;
+        if (deviceMemory >= 8) return { minTime: 500, checkInterval: 150, maxWaitTime: 10000 };
+        if (deviceMemory >= 4) return { minTime: 1000, checkInterval: 200, maxWaitTime: 15000 };
+        return { minTime: 1500, checkInterval: 300, maxWaitTime: 20000 };
       }
       
-      return 1000; // Final fallback
+      return { minTime: 800, checkInterval: 150, maxWaitTime: 10000 };
     };
 
-    // Track asset loading progress
-    const trackAssetLoading = () => {
-      let loadedAssets = 0;
-      let totalAssets = 0;
-
-      // Count images
+    // Track asset loading progress in real-time
+    const trackAssetLoadingRealtime = (callback: (progress: number) => void) => {
       const images = document.querySelectorAll('img');
-      totalAssets += images.length;
-
-      images.forEach((img) => {
-        if (img.complete) {
-          loadedAssets++;
-        } else {
-          img.addEventListener('load', () => {
-            loadedAssets++;
-            updateProgress();
-          });
-          img.addEventListener('error', () => {
-            loadedAssets++;
-            updateProgress();
-          });
-        }
-      });
-
-      // Count stylesheets
       const stylesheets = document.querySelectorAll('link[rel="stylesheet"]');
-      totalAssets += stylesheets.length;
-      stylesheets.forEach(() => loadedAssets++); // CSS is typically loaded by now
-
-      // Count scripts
       const scripts = document.querySelectorAll('script[src]');
-      totalAssets += scripts.length;
-      scripts.forEach(() => loadedAssets++); // Scripts are loaded by now
+      
+      let loadedImages = 0;
+      let totalImages = images.length;
+      
+      // Quick count for CSS and scripts (usually cached)
+      const cssScriptCount = stylesheets.length + scripts.length;
+      let processedCssScripts = cssScriptCount;
 
+      // Update progress
       const updateProgress = () => {
-        const progress = totalAssets > 0 ? (loadedAssets / totalAssets) * 100 : 100;
-        setLoadingProgress(Math.min(progress, 100));
+        const imageProgress = totalImages > 0 ? (loadedImages / totalImages) * 70 : 70;
+        const cssScriptProgress = processedCssScripts > 0 ? 20 : 0;
+        const docProgress = document.readyState === 'complete' ? 10 : 0;
+        
+        const total = Math.min(imageProgress + cssScriptProgress + docProgress, 95);
+        callback(Math.round(total));
       };
 
+      if (totalImages === 0) {
+        processedCssScripts = 90;
+        updateProgress();
+      } else {
+        // Track individual image loads
+        images.forEach((img) => {
+          if (img.complete) {
+            loadedImages++;
+          } else {
+            img.addEventListener('load', () => {
+              loadedImages++;
+              updateProgress();
+            }, { once: true });
+            img.addEventListener('error', () => {
+              loadedImages++;
+              updateProgress();
+            }, { once: true });
+          }
+        });
+      }
+
       updateProgress();
-      return totalAssets > 0 ? (loadedAssets / totalAssets) >= 1 : true;
     };
 
     // Check if all critical resources are loaded
     const checkCriticalResourcesLoaded = () => {
-      // Check document ready state
       const documentReady = document.readyState === 'complete';
-      
-      // Check if all images are loaded
       const images = Array.from(document.querySelectorAll('img'));
       const allImagesLoaded = images.length === 0 || images.every(img => img.complete);
-      
       return documentReady && allImagesLoaded;
     };
 
-    const minLoadTime = getMinLoadTimeBasedOnSpeed();
+    const timing = getNetworkBasedTiming();
     const startTime = Date.now();
-    let checkInterval: NodeJS.Timeout;
+    let checkInterval: NodeJS.Timeout | undefined;
+    let hidePreloaderCalled = false;
+
+    const hidePreloader = () => {
+      if (hidePreloaderCalled) return;
+      hidePreloaderCalled = true;
+      
+      setLoadingProgress(100);
+      if (checkInterval) clearInterval(checkInterval);
+      
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 300);
+    };
 
     const checkAndHidePreloader = () => {
       const elapsedTime = Date.now() - startTime;
-      const resourcesLoaded = checkCriticalResourcesLoaded();
-      trackAssetLoading();
+      
+      // Update progress in real-time
+      trackAssetLoadingRealtime((progress) => {
+        setLoadingProgress(progress);
+      });
 
-      // Hide preloader when:
-      // 1. Minimum time has passed AND
-      // 2. All critical resources are loaded
-      if (resourcesLoaded && elapsedTime >= minLoadTime) {
-        setLoadingProgress(100);
-        setTimeout(() => setIsLoading(false), 300);
-        if (checkInterval) clearInterval(checkInterval);
+      const resourcesLoaded = checkCriticalResourcesLoaded();
+      
+      // Hide preloader when minimum time passed AND resources loaded, or max wait time exceeded
+      if ((resourcesLoaded && elapsedTime >= timing.minTime) || elapsedTime >= timing.maxWaitTime) {
+        hidePreloader();
       }
     };
 
-    // For slow connections, keep checking until assets load
-    if (minLoadTime >= 3000) {
-      checkInterval = setInterval(checkAndHidePreloader, 200);
-    }
-
-    // Initial check
+    // Start initial check
     if (document.readyState === 'complete') {
-      trackAssetLoading();
-      setTimeout(() => {
-        setLoadingProgress(100);
-        setIsLoading(false);
-      }, minLoadTime);
+      setTimeout(checkAndHidePreloader, timing.minTime);
     } else {
       // Listen for load event
-      window.addEventListener('load', () => {
-        trackAssetLoading();
+      const loadHandler = () => {
         checkAndHidePreloader();
-      });
+        window.removeEventListener('load', loadHandler);
+      };
       
-      // Also set a timeout as backup
-      setTimeout(checkAndHidePreloader, minLoadTime);
+      window.addEventListener('load', loadHandler);
+      
+      // Set timeout as fallback
+      setTimeout(checkAndHidePreloader, timing.minTime);
       
       // Start periodic checks
-      checkInterval = setInterval(checkAndHidePreloader, 100);
+      checkInterval = setInterval(checkAndHidePreloader, timing.checkInterval) as unknown as NodeJS.Timeout;
     }
 
     return () => {
-      window.removeEventListener('load', checkAndHidePreloader);
       if (checkInterval) clearInterval(checkInterval);
     };
   }, []);

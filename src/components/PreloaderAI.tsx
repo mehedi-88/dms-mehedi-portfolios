@@ -11,7 +11,16 @@ interface PreloaderAIProps {
 
 export function PreloaderAI({ isLoading, onLoadingComplete, progress = 0 }: PreloaderAIProps) {
   const [displayText, setDisplayText] = useState('');
+  const [networkType, setNetworkType] = useState('');
   const loadingText = 'Initializing AI Systems';
+
+  useEffect(() => {
+    // Get network type
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    if (connection) {
+      setNetworkType(connection.effectiveType.toUpperCase());
+    }
+  }, []);
 
   useEffect(() => {
     if (!isLoading) return;
@@ -110,6 +119,11 @@ export function PreloaderAI({ isLoading, onLoadingComplete, progress = 0 }: Prel
 
               {/* Loading Percentage */}
               <p className="text-sm text-[#00C4FF] font-medium">{Math.round(progress)}%</p>
+
+              {/* Network Type Info */}
+              {networkType && (
+                <p className="text-xs text-[#8D8D8D] mt-1">{networkType} Connection</p>
+              )}
 
               {/* Status Text */}
               <p className="text-xs text-[#8D8D8D]">Preparing your experience...</p>
