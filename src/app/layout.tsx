@@ -9,6 +9,7 @@ import { Analytics } from "@vercel/analytics/next"
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://dms-mehedi.vercel.app'),
   title: 'DMS Mehedi - AI-Powered Best Digital Marketer in Bangladesh & Ai-Web Developer ',
   description:
     'DMS Mehedi, an AI-powered developer, digital strategist, AI-Powered Best Digital Marketer in Bangladesh & Ai-Web Developer.',

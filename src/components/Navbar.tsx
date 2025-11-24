@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Home, User, Code, Mail, Zap, Briefcase } from 'lucide-react';
+import { Menu, X, Home, User, Code, Mail, Zap, Briefcase, BookOpen } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { NAVIGATION_LINKS, APP_LOGO } from '@/lib/assets';
 
@@ -29,7 +29,8 @@ export function Navbar() {
       Code,
       Mail,
       Zap,
-      Briefcase
+      Briefcase,
+      BookOpen
     };
     return icons[iconName] || Home;
   };

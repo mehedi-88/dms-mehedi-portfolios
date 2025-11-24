@@ -55,7 +55,9 @@ const config: Config = {
       // Since we are downgrading to stable versions, this should be fine.
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
 };
 
 export default config;

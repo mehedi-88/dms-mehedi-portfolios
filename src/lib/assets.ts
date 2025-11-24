@@ -84,6 +84,7 @@ export const NAVIGATION_LINKS = [
   { name: 'About', href: '/#about', icon: 'User', scroll: true },
   { name: 'Projects', href: '/#projects', icon: 'Code', scroll: true },
   { name: 'Services', href: '/#services', icon: 'Briefcase', scroll: true },
+  { name: 'Blog', href: '/blog', icon: 'BookOpen', scroll: false },
   { name: 'Contact', href: '/#contact', icon: 'Mail', scroll: true },
   { name: 'AI Tools', href: '/dms-ai-powered', icon: 'Zap', scroll: false }
 ];

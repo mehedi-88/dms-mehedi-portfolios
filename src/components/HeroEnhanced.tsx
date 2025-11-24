@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { TypeAnimation } from 'react-type-animation';
+import Image from 'next/image';
 import { HOME_SECTION_CONTENT, PROFILE_IMAGES } from '@/lib/assets';
 
 export function HeroEnhanced() {
@@ -222,10 +223,12 @@ export function HeroEnhanced() {
                 }}
                 transition={{ duration: 0.3 }}
               >
-                <img
+                <Image
                   src={PROFILE_IMAGES.main.src}
                   alt={PROFILE_IMAGES.main.alt}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  priority
                 />
               </motion.div>
 
